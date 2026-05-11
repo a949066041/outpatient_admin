@@ -45,7 +45,7 @@ const menuOptions: MenuOption[] = [
     children: [
       { label: () => h(RouterLink, { to: '/back/bed-list' }, '病床管理'), key: 'bed-list' },
       { label: () => h(RouterLink, { to: '/back/department-list' }, '科室管理'), key: 'department-list' },
-      { label: () => h(RouterLink, { to: '/back/schedule-manage' }, '值班安排'), key: 'schedule-manage' },
+      { label: () => h(RouterLink, { to: '/back/schedule-manage' }, '排班信息管理'), key: 'schedule-manage' },
     ],
   },
   {
@@ -67,8 +67,13 @@ function handelLogout() {
 <template>
   <n-layout has-sider class="min-h-screen">
     <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240">
-      <div class="px-4 py-5 text-lg font-bold text-teal-700">
-        门诊管理后台
+      <div class="px-4 py-5">
+        <div class="text-lg font-bold text-teal-700">
+          门诊管理后台
+        </div>
+        <div class="mt-1 text-xs leading-snug text-slate-500">
+          （三）管理员模块：人员与基础数据、业务办理、排班与资源、统计分析
+        </div>
       </div>
       <n-menu
         :collapsed-width="64"

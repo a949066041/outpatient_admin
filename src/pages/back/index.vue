@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
+import { RouterLink } from 'vue-router'
 import { useDepartmentStore, usePatientStore, useRegistrationStore } from '~/store'
 
 const { list: registrations } = useRegistrationStore()
@@ -22,9 +23,41 @@ const stats = computed(() => ({
 
 <template>
   <div>
-    <h2 class="mb-6 text-xl font-semibold text-slate-800">
-      管理首页
+    <h2 class="mb-2 text-xl font-semibold text-slate-800">
+      管理员工作台
     </h2>
+    <p class="mb-6 max-w-4xl text-sm text-slate-600">
+      本后台对应论文<strong>（三）管理员模块</strong>：涵盖医生与科室等基础信息维护、患者与挂号业务、药品与检查项目、病床资源，以及<strong>排班信息管理</strong>（按日期—科室—医生维护出诊时段与号源，并支持查询与停诊处理）与运营数据统计。
+    </p>
+    <n-card title="常用入口" size="small" class="mb-6" embedded>
+      <n-space wrap>
+        <RouterLink v-slot="{ navigate }" to="/back/schedule-manage" custom>
+          <n-button type="primary" secondary @click="navigate">
+            排班信息管理
+          </n-button>
+        </RouterLink>
+        <RouterLink v-slot="{ navigate }" to="/back/department-list" custom>
+          <n-button secondary @click="navigate">
+            科室管理
+          </n-button>
+        </RouterLink>
+        <RouterLink v-slot="{ navigate }" to="/back/doctor-list" custom>
+          <n-button secondary @click="navigate">
+            医生信息管理
+          </n-button>
+        </RouterLink>
+        <RouterLink v-slot="{ navigate }" to="/back/registration-list" custom>
+          <n-button secondary @click="navigate">
+            挂号管理
+          </n-button>
+        </RouterLink>
+        <RouterLink v-slot="{ navigate }" to="/back/stats" custom>
+          <n-button secondary @click="navigate">
+            数据统计
+          </n-button>
+        </RouterLink>
+      </n-space>
+    </n-card>
     <n-grid :cols="4" :x-gap="16" :y-gap="16" responsive="screen">
       <n-gi>
         <n-card title="启用科室">

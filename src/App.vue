@@ -33,21 +33,23 @@ const pageList = [
 <template>
   <n-config-provider :theme-overrides="theme" :locale="zhCN" :date-locale="dateZhCN">
     <n-message-provider>
-      <n-radio-group
-        v-if="currentRole === '管理员'"
-        :value="currentCheck"
-        class="fixed right-4 top-4 z-20"
-        size="small"
-        @update:value="onSwitchEnd"
-      >
-        <n-radio-button
-          v-for="item of pageList"
-          :key="item.path"
-          :value="item.path"
-          :label="item.name"
-        />
-      </n-radio-group>
-      <router-view />
+      <n-dialog-provider>
+        <n-radio-group
+          v-if="currentRole === '管理员'"
+          :value="currentCheck"
+          class="fixed right-4 top-4 z-20"
+          size="small"
+          @update:value="onSwitchEnd"
+        >
+          <!-- <n-radio-button
+            v-for="item of pageList"
+            :key="item.path"
+            :value="item.path"
+            :label="item.name"
+          /> -->
+        </n-radio-group>
+        <router-view />
+      </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
 </template>

@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import type { Doctor, Registration } from '~/types/outpatient'
 import dayjs from 'dayjs'
+import { NButton } from 'naive-ui'
+import { h } from 'vue'
 import {
   useDepartmentStore,
   useDoctorStore,
   useLoginStore,
   useRegistrationStore,
+  useReviewStore,
   useScheduleStore,
 } from '~/store'
 
@@ -12,31 +16,121 @@ const message = useMessage()
 const { dataList: departments } = useDepartmentStore()
 const { dataList: doctors } = useDoctorStore()
 const { dataList: schedules } = useScheduleStore()
-const { book, isSlotFull, hasConflict } = useRegistrationStore()
-const { currentProfile } = useLoginStore()
+const { list: registrations, book, isSlotFull, hasConflict } = useRegistrationStore()
+const { avgScoreForDoctor } = useReviewStore()
+const { currentProfile, currentRole } = useLoginStore()
 
-const step = ref(1)
+/** 与论文患者端图 5.10 一致的一级分类（含中医科） */
+const CATEGORY_ORDER = ['内科', '外科', '妇产科', '儿科', '五官科', '中医科'] as const
+
+const step = ref<1 | 2 | 3>(1)
 const deptId = ref<number | null>(null)
 const pickDate = ref(dayjs().format('YYYY-MM-DD'))
 const doctorId = ref<number | null>(null)
-const slot = ref('')
+/** 勿用变量名 slot，避免与模板/SFC 语义冲突导致 v-model 不同步 */
+const pickedTimeSlot = ref('')
 
-const doctorsInDept = computed(() => {
-  if (!deptId.value)
+/** 论文图 5.12：预约成功后展示挂号详情 */
+const showSuccessDetail = ref(false)
+const successDetail = ref<{
+  register_no: string
+  register_date: string
+  time_slot: string
+  location: string
+  queue_no: number
+  register_fee: number
+} | null>(null)
+
+function deptLocation(deptId: number) {
+  return departments.value.find(d => d.department_id === deptId)?.location ?? '—'
+}
+
+/** 同日同时段同医生的排队序号（含本人） */
+function queueNoFor(reg: Registration) {
+  return registrations.value.filter(
+    r =>
+      r.register_date === reg.register_date
+      && r.doctor_id === reg.doctor_id
+      && r.time_slot === reg.time_slot
+      && r.status !== 2
+      && r.register_id <= reg.register_id,
+  ).length
+}
+
+const selectedDeptName = computed(() =>
+  departments.value.find(d => d.department_id === deptId.value)?.dept_name ?? '',
+)
+
+const selectedDoctor = computed(() =>
+  doctorId.value == null ? null : doctors.value.find(d => d.doctor_id === doctorId.value) ?? null,
+)
+
+const departmentGroups = computed(() => {
+  const groups: { title: string, items: typeof departments.value }[] = []
+  for (const c of CATEGORY_ORDER) {
+    const rows = departments.value.filter(d => d.status === 1 && d.category === c)
+    if (rows.length)
+      groups.push({ title: c, items: rows })
+  }
+  const rest = departments.value.filter(d => d.status === 1 && !d.category)
+  if (rest.length)
+    groups.push({ title: '其他', items: rest })
+  return groups
+})
+
+/** 论文图 5.11：未来 7 天日期条 */
+const dateStrip = computed(() => {
+  const list: { label: string, full: string }[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = dayjs().add(i, 'day')
+    list.push({ label: d.format('MM-DD'), full: d.format('YYYY-MM-DD') })
+  }
+  return list
+})
+
+/** 当日、本科室、在排班表中有正常出诊记录的医生（动态号源） */
+const doctorsOnDuty = computed(() => {
+  if (!deptId.value || !pickDate.value)
     return []
-  return doctors.value.filter(d => d.department_id === deptId.value && d.status === 1)
+  const onDutyIds = new Set(
+    schedules.value
+      .filter(
+        s =>
+          s.work_date === pickDate.value
+          && s.department_id === deptId.value
+          && s.status === 1,
+      )
+      .map(s => s.doctor_id),
+  )
+  return doctors.value.filter(
+    d =>
+      onDutyIds.has(d.doctor_id)
+      && d.department_id === deptId.value
+      && d.status === 1,
+  )
 })
 
 const doctorSchedules = computed(() => {
   if (!doctorId.value || !pickDate.value)
     return []
   return schedules.value.filter(
-    s => s.doctor_id === doctorId.value && s.work_date === pickDate.value && s.status === 1,
+    s =>
+      s.doctor_id === doctorId.value
+      && s.work_date === pickDate.value
+      && s.status === 1,
   )
 })
 
+/** 同一医生同日若存在重复排班记录，只保留一条时段，避免 v-for 同 value 导致单选状态错乱 */
 const slotOptions = computed(() => {
-  return doctorSchedules.value.map((s) => {
+  const seen = new Set<string>()
+  const rows = doctorSchedules.value.filter((s) => {
+    if (seen.has(s.time_slot))
+      return false
+    seen.add(s.time_slot)
+    return true
+  })
+  return rows.map((s) => {
     const full = s.booked_count >= s.max_patients
     return {
       label: `${s.time_slot}（剩余 ${Math.max(0, s.max_patients - s.booked_count)} / ${s.max_patients}）`,
@@ -46,150 +140,326 @@ const slotOptions = computed(() => {
   })
 })
 
-function next1() {
-  if (!deptId.value) {
-    message.warning('请选择科室')
-    return
-  }
+function deptName(id: number) {
+  return departments.value.find(d => d.department_id === id)?.dept_name ?? '-'
+}
+
+function regFee(d: Doctor) {
+  return d.register_fee ?? 10
+}
+
+function pickDepartment(id: number) {
+  deptId.value = id
+  pickDate.value = dayjs().format('YYYY-MM-DD')
+  doctorId.value = null
+  pickedTimeSlot.value = ''
   step.value = 2
 }
 
-function next2() {
-  if (!pickDate.value || !doctorId.value) {
-    message.warning('请选择日期与医生')
-    return
+function goStep1() {
+  step.value = 1
+  deptId.value = null
+  doctorId.value = null
+  pickedTimeSlot.value = ''
+}
+
+function goStep2() {
+  if (step.value === 3) {
+    pickedTimeSlot.value = ''
+    step.value = 2
   }
-  if (!doctorSchedules.value.length) {
-    message.warning('该医生当日无排班或已停诊')
-    return
-  }
+}
+
+function pickDateBtn(full: string) {
+  pickDate.value = full
+  doctorId.value = null
+  pickedTimeSlot.value = ''
+}
+
+function openSlotStep(row: Doctor) {
+  doctorId.value = row.doctor_id
+  pickedTimeSlot.value = ''
   step.value = 3
 }
 
 function confirmBook() {
-  if (!slot.value || !doctorId.value || !deptId.value || !currentProfile.value) {
+  if (!currentProfile.value) {
+    message.warning('登录已失效或未找到账号信息，请重新登录患者账号后再预约')
+    return
+  }
+  if (currentRole.value !== '患者') {
+    message.warning('当前为管理员等非患者身份，请使用患者账号登录后再预约挂号')
+    return
+  }
+  if (!deptId.value || !doctorId.value) {
+    message.warning('请选择科室与医生')
+    return
+  }
+  if (!pickedTimeSlot.value) {
     message.warning('请选择时段')
     return
   }
-  if (isSlotFull(doctorId.value, pickDate.value, slot.value)) {
+  if (isSlotFull(doctorId.value, pickDate.value, pickedTimeSlot.value)) {
     message.error('该时段号源已满，请选择其他时段或医生')
     return
   }
-  if (hasConflict(currentProfile.value.id as number, pickDate.value, slot.value)) {
+  if (hasConflict(currentProfile.value.id as number, pickDate.value, pickedTimeSlot.value)) {
     message.error('您在该时段已有其他预约，请取消原预约后再试')
     return
   }
+  const doc = doctors.value.find(d => d.doctor_id === doctorId.value)
+  const fee = regFee(doc!)
   const res = book({
     patient_id: currentProfile.value.id as number,
     doctor_id: doctorId.value,
     department_id: deptId.value,
     register_date: pickDate.value,
-    time_slot: slot.value,
-    register_fee: 15,
+    time_slot: pickedTimeSlot.value,
+    register_fee: fee,
   })
   if (!res.ok) {
     message.error(res.message || '预约失败')
     return
   }
-  message.success(`预约成功，挂号单号 ${res.registration?.register_no}`)
-  step.value = 1
-  deptId.value = null
-  doctorId.value = null
-  slot.value = ''
-  pickDate.value = dayjs().format('YYYY-MM-DD')
+  const reg = res.registration!
+  successDetail.value = {
+    register_no: reg.register_no,
+    register_date: reg.register_date,
+    time_slot: reg.time_slot,
+    location: deptLocation(deptId.value),
+    queue_no: queueNoFor(reg),
+    register_fee: fee,
+  }
+  showSuccessDetail.value = true
+  message.success('预约成功')
 }
 
-function isDateDisabled(ts: number) {
-  const d = dayjs(ts)
-  if (d.isBefore(dayjs(), 'day'))
-    return true
-  return d.isAfter(dayjs().add(30, 'day'), 'day')
-}
-
-const dateMs = computed({
-  get: () => dayjs(pickDate.value).valueOf(),
-  set: (v: number) => {
-    pickDate.value = dayjs(v).format('YYYY-MM-DD')
-    doctorId.value = null
-    slot.value = ''
+const doctorColumns = [
+  {
+    title: '序号',
+    key: 'idx',
+    width: 64,
+    render: (_row: Doctor, index: number) => index + 1,
   },
-})
+  { title: '工号', key: 'doctor_no', width: 88 },
+  { title: '姓名', key: 'name', width: 88 },
+  {
+    title: '性别',
+    key: 'gender',
+    width: 64,
+    render: (row: Doctor) => (row.gender === 1 ? '男' : '女'),
+  },
+  { title: '职位', key: 'title', ellipsis: { tooltip: true } },
+  {
+    title: '科室',
+    key: 'dept',
+    ellipsis: { tooltip: true },
+    render: (row: Doctor) => deptName(row.department_id),
+  },
+  {
+    title: '擅长领域',
+    key: 'introduction',
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '挂号费用/元',
+    key: 'fee',
+    width: 110,
+    render: (row: Doctor) => regFee(row),
+  },
+  {
+    title: '评分/5分',
+    key: 'score',
+    width: 96,
+    render: (row: Doctor) => avgScoreForDoctor(row.doctor_id),
+  },
+  {
+    title: '操作',
+    key: 'op',
+    width: 100,
+    render: (row: Doctor) =>
+      h(
+        NButton,
+        {
+          type: 'primary',
+          size: 'small',
+          onClick: () => openSlotStep(row),
+        },
+        { default: () => '挂号' },
+      ),
+  },
+]
 </script>
 
 <template>
-  <div>
+  <div class="book-page text-slate-800">
     <n-h2 prefix="bar">
       预约挂号
     </n-h2>
-    <n-steps :current="step" class="mb-8">
-      <n-step title="选择科室" description="全院科室列表" />
-      <n-step title="选择日期与医生" description="查看号源余量" />
-      <n-step title="选择时段并确认" description="生成挂号单号" />
-    </n-steps>
 
-    <n-card v-show="step === 1" title="选择挂号科室">
-      <n-radio-group v-model:value="deptId" name="dept">
-        <n-space vertical>
-          <n-radio v-for="d in departments.filter(x => x.status === 1)" :key="d.department_id" :value="d.department_id">
-            <strong>{{ d.dept_name }}</strong>
-            <span class="text-slate-500"> — {{ d.description }}</span>
-          </n-radio>
-        </n-space>
-      </n-radio-group>
-      <n-button class="mt-6" type="primary" @click="next1">
-        下一步
-      </n-button>
-    </n-card>
+    <!-- 论文：科室选择 > 日期选择 > 挂号 -->
+    <div class="mb-6 flex flex-wrap items-center gap-1 text-sm text-slate-600">
+      <span
+        class="cursor-pointer font-medium text-teal-700 hover:underline"
+        @click="goStep1"
+      >科室选择</span>
+      <span class="text-slate-300">></span>
+      <span
+        class="cursor-pointer"
+        :class="step >= 2 ? 'font-medium text-teal-700 hover:underline' : ''"
+        @click="step === 3 ? goStep2() : undefined"
+      >日期选择</span>
+      <span class="text-slate-300">></span>
+      <span :class="step === 3 ? 'font-medium text-slate-800' : 'text-slate-400'">挂号</span>
+    </div>
 
-    <n-card v-show="step === 2" title="选择挂号日期以及医生">
-      <n-form label-placement="left" label-width="96">
-        <n-form-item label="就诊日期">
-          <n-date-picker v-model:value="dateMs" type="date" :is-date-disabled="isDateDisabled" />
-        </n-form-item>
-        <n-form-item label="出诊医生">
-          <n-select
-            v-model:value="doctorId"
-            :options="doctorsInDept.map(d => ({ label: `${d.name} · ${d.title}`, value: d.doctor_id }))"
-            placeholder="请选择医生"
-            @update:value="() => { slot = '' }"
-          />
-        </n-form-item>
-      </n-form>
-      <n-space>
-        <n-button @click="step = 1">
-          上一步
-        </n-button>
-        <n-button type="primary" @click="next2">
-          下一步
-        </n-button>
-      </n-space>
-    </n-card>
+    <!-- 第一步：图 5.10 全院科室列表及各科室简介 -->
+    <section v-show="step === 1">
+      <p class="mb-4 text-sm text-slate-600">
+        请选择目标就诊科室；鼠标悬停可查看科室简介，辅助您合理选择。
+      </p>
+      <div v-for="grp in departmentGroups" :key="grp.title" class="mb-5">
+        <h3 class="mb-2 border-b border-slate-200 pb-1 text-sm font-bold text-slate-800">
+          {{ grp.title }}
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <n-tooltip v-for="d in grp.items" :key="d.department_id" trigger="hover">
+            <template #trigger>
+              <NButton
+                secondary
+                class="!border-blue-200 !text-blue-800 hover:!border-blue-400"
+                @click="pickDepartment(d.department_id)"
+              >
+                {{ d.dept_name }}
+              </NButton>
+            </template>
+            <div class="max-w-xs text-sm">
+              <div class="font-medium">
+                {{ d.dept_name }}
+              </div>
+              <div class="mt-1 text-slate-200">
+                {{ d.description || '（暂无简介）' }}
+              </div>
+              <div class="mt-1 text-xs opacity-90">
+                位置：{{ d.location }}
+              </div>
+            </div>
+          </n-tooltip>
+        </div>
+      </div>
+    </section>
 
-    <n-card v-show="step === 3" title="选择挂号时间段">
-      <n-alert v-if="!slotOptions.length" type="warning" title="该日无可预约时段" />
-      <n-radio-group v-else v-model:value="slot" name="slot">
-        <n-space vertical>
-          <n-radio
-            v-for="opt in slotOptions"
-            :key="opt.value"
-            :value="opt.value"
-            :disabled="opt.disabled"
+    <!-- 第二步：图 5.11 日期 + 动态值班医生（职称、擅长、评价） -->
+    <section v-show="step === 2 && deptId">
+      <p class="mb-2 text-sm text-slate-600">
+        当前科室：<span class="font-semibold text-slate-800">{{ selectedDeptName }}</span>
+        <span class="mx-2 text-slate-300">|</span>
+        <span>{{ departments.find(x => x.department_id === deptId)?.description }}</span>
+      </p>
+      <h3 class="mb-3 text-base font-semibold text-slate-700">
+        请选择你要挂号的日期：
+      </h3>
+      <div class="mb-6 flex flex-wrap gap-2">
+        <button
+          v-for="opt in dateStrip"
+          :key="opt.full"
+          type="button"
+          class="min-w-[3.75rem] rounded-md px-3 py-2 text-sm font-medium text-white shadow transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+          :class="opt.full === pickDate ? 'bg-blue-800 ring-2 ring-blue-300 ring-offset-1' : 'bg-blue-600 hover:bg-blue-700'"
+          @click="pickDateBtn(opt.full)"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
+
+      <n-empty
+        v-if="!doctorsOnDuty.length"
+        description="当日该科室暂无出诊医生或号源未开放，请更换日期或返回选择其他科室"
+        class="my-8"
+      />
+      <template v-else>
+        <n-data-table
+          :columns="doctorColumns"
+          :data="doctorsOnDuty"
+          :bordered="true"
+          :single-line="false"
+          size="small"
+        />
+      </template>
+
+      <NButton class="mt-6" @click="goStep1">
+        返回选择科室
+      </NButton>
+    </section>
+
+    <!-- 第三步：图 5.12 时段号源 + 确认（验证资格、生成单号、可在线支付） -->
+    <section v-show="step === 3 && doctorId">
+      <n-card title="选择挂号时段（展示各时段号源剩余）" class="max-w-lg">
+        <p class="mb-4 text-sm text-slate-600">
+          {{ selectedDeptName }} · {{ pickDate }} ·
+          {{ selectedDoctor?.name }}
+          （挂号费 {{ selectedDoctor ? regFee(selectedDoctor) : 0 }} 元）
+        </p>
+        <n-alert v-if="!slotOptions.length" type="warning" title="该日无可预约时段" />
+        <n-radio-group v-else v-model:value="pickedTimeSlot" name="book-time-slot">
+          <n-space vertical>
+            <n-radio
+              v-for="opt in slotOptions"
+              :key="opt.value"
+              :value="opt.value"
+              :disabled="opt.disabled"
+            >
+              {{ opt.label }}
+              <n-text v-if="opt.disabled" depth="3" class="ml-2">
+                已满
+              </n-text>
+            </n-radio>
+          </n-space>
+        </n-radio-group>
+        <n-space class="mt-6">
+          <NButton @click="goStep2">
+            上一步
+          </NButton>
+          <NButton
+            type="primary"
+            :disabled="!pickedTimeSlot || !!slotOptions.find(o => o.value === pickedTimeSlot && o.disabled) || currentRole !== '患者'"
+            @click="confirmBook"
           >
-            {{ opt.label }}
-            <n-text v-if="opt.disabled" depth="3" class="ml-2">
-              已满
-            </n-text>
-          </n-radio>
+            确认预约
+          </NButton>
         </n-space>
-      </n-radio-group>
-      <n-space class="mt-6">
-        <n-button @click="step = 2">
-          上一步
-        </n-button>
-        <n-button type="primary" :disabled="!slot || slotOptions.find(o => o.value === slot)?.disabled" @click="confirmBook">
-          确认预约
-        </n-button>
-      </n-space>
-    </n-card>
+      </n-card>
+    </section>
+
+    <n-modal
+      v-model:show="showSuccessDetail"
+      preset="dialog"
+      title="挂号详情"
+      positive-text="完成"
+      @positive-click="() => { showSuccessDetail = false; goStep1() }"
+    >
+      <template v-if="successDetail">
+        <n-descriptions :column="1" label-placement="left" bordered size="small">
+          <n-descriptions-item label="挂号单号">
+            {{ successDetail.register_no }}
+          </n-descriptions-item>
+          <n-descriptions-item label="就诊时间">
+            {{ successDetail.register_date }} {{ successDetail.time_slot }}
+          </n-descriptions-item>
+          <n-descriptions-item label="就诊地点">
+            {{ successDetail.location }}
+          </n-descriptions-item>
+          <n-descriptions-item label="排队序号">
+            第 {{ successDetail.queue_no }} 号（同医生同日上午/下午序）
+          </n-descriptions-item>
+          <n-descriptions-item label="挂号费用">
+            ¥{{ successDetail.register_fee }}（请至「我的挂号」在线支付）
+          </n-descriptions-item>
+        </n-descriptions>
+        <p class="mt-3 text-xs text-slate-500">
+          请提前 15 分钟到达诊区候诊，携带有效证件。
+        </p>
+      </template>
+    </n-modal>
   </div>
 </template>

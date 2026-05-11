@@ -132,7 +132,7 @@ function handleLogin() {
         </div>
       </n-space>
       <p class="mt-6 text-center text-xs leading-relaxed text-slate-500">
-        演示：管理员 admin001 / 123456；医生工号 D001 / 123456；患者 patient001 / 123456
+        演示：管理员 admin001 / 123456；医生工号 1000 / 123456；患者 patient001 / 123456
       </p>
     </div>
   </div>

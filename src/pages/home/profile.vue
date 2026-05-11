@@ -47,7 +47,7 @@ function save() {
 <template>
   <div>
     <n-h2 prefix="bar">
-      资料维护
+      个人信息
     </n-h2>
     <n-form label-placement="left" label-width="96" class="max-w-xl">
       <n-form-item label="真实姓名">

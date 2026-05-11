@@ -19,6 +19,8 @@ export interface Department {
   description: string
   location: string
   status: 0 | 1
+  /** 排班界面一级分类：内科 / 外科 / 妇产科 / 儿科 / 五官科 */
+  category?: string
 }
 
 export interface Doctor {
@@ -34,6 +36,8 @@ export interface Doctor {
   email: string
   introduction: string
   status: 0 | 1
+  /** 挂号费（元），论文示例 10 元 */
+  register_fee?: number
 }
 
 export interface Patient {

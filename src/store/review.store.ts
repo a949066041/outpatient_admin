@@ -5,6 +5,14 @@ import { nextNumericId } from '~/utils/outpatient'
 export const useReviewStore = createGlobalState(() => {
   const list = useLocalStorage<Review[]>('outpatient-review-list', [])
 
+  /** 患者评价均分，无记录时按文档展示默认 5 分 */
+  function avgScoreForDoctor(doctorId: number) {
+    const rs = list.value.filter(r => r.doctor_id === doctorId)
+    if (!rs.length)
+      return 5
+    return Math.round((rs.reduce((s, r) => s + r.score, 0) / rs.length) * 10) / 10
+  }
+
   function addReview(input: Omit<Review, 'review_id'>) {
     const row: Review = {
       ...input,
@@ -14,5 +22,5 @@ export const useReviewStore = createGlobalState(() => {
     return row
   }
 
-  return { list, addReview }
+  return { list, addReview, avgScoreForDoctor }
 })

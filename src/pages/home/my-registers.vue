@@ -1,16 +1,35 @@
 <script setup lang="ts">
-import { useDoctorStore, useExamApplicationStore, useLoginStore, usePrescriptionStore, useRegistrationStore } from '~/store'
+import type { Registration } from '~/types/outpatient'
+import { useRouter } from 'vue-router'
+import {
+  useDepartmentStore,
+  useDoctorStore,
+  useExamApplicationStore,
+  useLoginStore,
+  usePrescriptionStore,
+  useRegistrationStore,
+} from '~/store'
 
+const router = useRouter()
 const message = useMessage()
 const { list, payRegister, cancelRegister } = useRegistrationStore()
 const { dataList: doctors } = useDoctorStore()
+const { dataList: departments } = useDepartmentStore()
 const { currentProfile } = useLoginStore()
 const { list: rxList, payPrescription } = usePrescriptionStore()
 const { list: examList, pay: payExam } = useExamApplicationStore()
 
+const tab = ref<'all' | '0' | '1' | '2'>('all')
+
 const mine = computed(() =>
   list.value.filter(r => r.patient_id === currentProfile.value?.id).sort((a, b) => b.register_id - a.register_id),
 )
+
+const filtered = computed(() => {
+  if (tab.value === 'all')
+    return mine.value
+  return mine.value.filter(r => String(r.status) === tab.value)
+})
 
 const myRx = computed(() =>
   rxList.value.filter(p => p.patient_id === currentProfile.value?.id && p.status === 0),
@@ -24,12 +43,16 @@ function dname(id: number) {
   return doctors.value.find(d => d.doctor_id === id)?.name ?? id
 }
 
-function pay(r: import('~/types/outpatient').Registration) {
+function depLoc(reg: Registration) {
+  return departments.value.find(d => d.department_id === reg.department_id)?.location ?? '—'
+}
+
+function pay(r: Registration) {
   payRegister(r.register_id)
   message.success('挂号费已支付（演示）')
 }
 
-function cancel(r: import('~/types/outpatient').Registration) {
+function cancel(r: Registration) {
   cancelRegister(r.register_id)
   message.info('已取消预约并释放号源')
 }
@@ -43,6 +66,10 @@ function payEx(id: number) {
   payExam(id)
   message.success('检查费已支付（演示）')
 }
+
+function hasMedicalRecord(r: Registration) {
+  return r.status === 1 && !!(r.symptom_desc || r.diagnosis)
+}
 </script>
 
 <template>
@@ -50,20 +77,32 @@ function payEx(id: number) {
     <n-h2 prefix="bar">
       我的挂号
     </n-h2>
-    <n-empty v-if="!mine.length" description="暂无挂号记录" />
+    <p class="mb-4 text-sm text-slate-600">
+      集中管理历史与当前预约；支持在线缴纳挂号费、药费、检查费；就诊完成后可查看电子病历、至「报告单」导出检验报告（演示环境为文本，对应论文 PDF 下载）。
+    </p>
+
+    <n-tabs v-model:value="tab" type="line" class="mb-4">
+      <n-tab-pane name="all" tab="全部" />
+      <n-tab-pane name="0" tab="待就诊" />
+      <n-tab-pane name="1" tab="已就诊" />
+      <n-tab-pane name="2" tab="已取消" />
+    </n-tabs>
+
+    <n-empty v-if="!filtered.length" description="暂无符合条件的挂号记录" />
     <n-list v-else bordered>
-      <n-list-item v-for="r in mine" :key="r.register_id">
-        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
+      <n-list-item v-for="r in filtered" :key="r.register_id">
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-center gap-2">
             <n-tag type="info">
               {{ r.register_no }}
             </n-tag>
-            <span class="ml-2">{{ r.register_date }} {{ r.time_slot }}</span>
-            <span class="ml-2 text-slate-600">医生：{{ dname(r.doctor_id) }}</span>
-            <n-tag class="ml-2" size="small" :type="r.status === 0 ? 'warning' : r.status === 1 ? 'success' : 'default'">
+            <span class="text-slate-700">{{ r.register_date }} {{ r.time_slot }}</span>
+            <span class="text-slate-600">医生：{{ dname(r.doctor_id) }}</span>
+            <span class="text-sm text-slate-500">地点：{{ depLoc(r) }}</span>
+            <n-tag size="small" :type="r.status === 0 ? 'warning' : r.status === 1 ? 'success' : 'default'">
               {{ r.status === 0 ? '待就诊' : r.status === 1 ? '已就诊' : '已取消' }}
             </n-tag>
-            <n-tag class="ml-2" size="small" :type="r.is_paid ? 'success' : 'error'">
+            <n-tag size="small" :type="r.is_paid ? 'success' : 'error'">
               {{ r.is_paid ? '已缴费' : '未缴费' }}
             </n-tag>
           </div>
@@ -75,6 +114,23 @@ function payEx(id: number) {
               取消预约
             </n-button>
           </n-space>
+          <!-- 论文：就诊完成后查看电子病历 -->
+          <n-collapse v-if="r.status === 1" class="!mt-0">
+            <n-collapse-item title="电子病历（主诉与诊断）" :name="`emr-${r.register_id}`">
+              <template v-if="hasMedicalRecord(r)">
+                <p class="text-sm">
+                  <strong>主诉 / 症状：</strong>{{ r.symptom_desc || '—' }}
+                </p>
+                <p class="mt-2 text-sm">
+                  <strong>诊断：</strong>{{ r.diagnosis || '—' }}
+                </p>
+              </template>
+              <n-empty v-else description="医生尚未录入病历内容" size="small" />
+              <n-button class="mt-2" size="tiny" quaternary type="primary" @click="router.push('/home/reports')">
+                导出检验报告单
+              </n-button>
+            </n-collapse-item>
+          </n-collapse>
         </div>
       </n-list-item>
     </n-list>

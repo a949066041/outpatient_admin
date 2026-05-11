@@ -27,10 +27,10 @@ function exportTxt(row: import('~/types/outpatient').ExamApplication) {
 <template>
   <div>
     <n-h2 prefix="bar">
-      报告单导出
+      导出报告单
     </n-h2>
     <p class="mb-4 text-slate-600">
-      查看已完成检查的结果，支持导出文本报告（演示环境模拟 PDF 下载）。
+      就诊完成后，可在此查看检验结果并下载报告（演示环境为文本文件，对应论文中 PDF 格式检验报告单导出）。
     </p>
     <n-empty v-if="!mine.length" description="暂无已出报告的检查" />
     <n-list v-else bordered>

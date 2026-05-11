@@ -17,14 +17,14 @@ const unpaid = computed(() => mine.value.filter(r => r.is_paid === 0 && r.status
 <template>
   <div>
     <n-h2 prefix="bar">
-      个人中心
+      首页
     </n-h2>
     <p class="mb-6 text-slate-600">
-      欢迎使用门诊管理系统患者端。可在线预约挂号、查询记录、缴纳费用、查看报告与评价医生。
+      欢迎使用门诊管理系统患者端。您可进行<strong>预约挂号</strong>、在<strong>我的挂号</strong>中查看订单并<strong>在线缴纳挂号费、药费、检查费</strong>，就诊后查看<strong>电子病历</strong>、<strong>导出报告单</strong>，查询<strong>住院信息</strong>并<strong>评价医生</strong>（与论文「患者模块」描述一致）。
     </p>
     <n-grid :cols="3" :x-gap="16" :y-gap="16" responsive="screen">
       <n-gi>
-        <n-card title="有效预约" embedded>
+        <n-card title="待就诊预约" embedded>
           <div class="text-3xl font-semibold text-teal-600">
             {{ pending.length }}
           </div>
@@ -34,7 +34,7 @@ const unpaid = computed(() => mine.value.filter(r => r.is_paid === 0 && r.status
         </n-card>
       </n-gi>
       <n-gi>
-        <n-card title="待缴费用（挂号）" embedded>
+        <n-card title="待缴挂号费" embedded>
           <div class="text-3xl font-semibold text-amber-600">
             {{ unpaid.length }}
           </div>
@@ -50,7 +50,7 @@ const unpaid = computed(() => mine.value.filter(r => r.is_paid === 0 && r.status
               预约挂号
             </n-button>
             <n-button block quaternary @click="router.push('/home/reports')">
-              检验报告
+              导出报告单
             </n-button>
           </n-space>
         </n-card>

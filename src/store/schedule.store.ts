@@ -10,8 +10,10 @@ function seed(): Schedule[] {
     const work_date = dayjs().add(d, 'day').format('YYYY-MM-DD')
     for (const doc of [
       { doctor_id: 1, department_id: 1 },
-      { doctor_id: 2, department_id: 1 },
-      { doctor_id: 3, department_id: 2 },
+      { doctor_id: 2, department_id: 5 },
+      { doctor_id: 3, department_id: 9 },
+      { doctor_id: 4, department_id: 2 },
+      { doctor_id: 5, department_id: 24 },
     ]) {
       for (const time_slot of ['上午', '下午']) {
         list.push({
@@ -33,5 +35,5 @@ function seed(): Schedule[] {
 const initData: Schedule[] = seed()
 
 export const useScheduleStore = createGlobalState(() => {
-  return useCurd<Schedule>({ key: 'outpatient-schedule-list', initData })
+  return useCurd<Schedule>({ key: 'outpatient-schedule-list-v3', initData })
 })
