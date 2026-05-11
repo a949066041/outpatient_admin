@@ -2,6 +2,7 @@
 import type { RoleType } from '~/types/outpatient'
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { AUTH_PAGE_BG_URL } from '~/constants/auth-page-bg'
 import { useLoginStore } from '~/store'
 
 const router = useRouter()
@@ -56,12 +57,20 @@ function handleLogin() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 to-slate-100">
-    <div class="login w-full max-w-md rounded-2xl bg-white p-10 shadow-lg">
+  <div
+    class="relative flex min-h-screen items-center justify-end bg-slate-800 bg-cover bg-center bg-no-repeat px-4 py-10 sm:px-8 md:pr-16 lg:pr-24"
+    :style="{ backgroundImage: `url(${AUTH_PAGE_BG_URL})` }"
+  >
+    <!-- 轻微压暗左侧，保证右侧登录区与背景层次接近论文效果图 -->
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
+
+    <div
+      class="login relative z-10 w-full max-w-md rounded-2xl border border-white/50 bg-white/80 p-8 shadow-2xl backdrop-blur-md sm:p-10"
+    >
       <h1 class="mb-2 text-center text-2xl font-semibold text-slate-800">
         门诊管理系统
       </h1>
-      <p class="mb-6 text-center text-sm text-slate-500">
+      <p class="mb-6 text-center text-sm text-slate-600">
         多角色身份验证（管理员 / 医生 / 患者）
       </p>
       <n-space vertical :size="14">
@@ -71,14 +80,14 @@ function handleLogin() {
           </div>
           <n-radio-group v-model:value="form.role" name="role" class="w-full">
             <n-space>
-              <n-radio value="管理员">
-                管理员
+              <n-radio value="患者">
+                患者
               </n-radio>
               <n-radio value="医生">
                 医生
               </n-radio>
-              <n-radio value="患者">
-                患者
+              <n-radio value="管理员">
+                管理员
               </n-radio>
             </n-space>
           </n-radio-group>
@@ -88,7 +97,11 @@ function handleLogin() {
           size="large"
           :placeholder="accountPlaceholder"
           @keydown.enter.prevent="handleLogin"
-        />
+        >
+          <template #prefix>
+            <span class="icon-[icon-park-outline--user] text-lg text-slate-400" />
+          </template>
+        </n-input>
         <n-input
           v-model:value="form.password"
           size="large"
@@ -96,20 +109,29 @@ function handleLogin() {
           show-password-on="click"
           placeholder="密码"
           @keydown.enter.prevent="handleLogin"
-        />
-        <n-button type="primary" block size="large" :loading="loading" @click="handleLogin">
-          登录
-        </n-button>
-        <div class="flex justify-between text-sm">
-          <n-button text type="primary" @click="router.push('/register')">
-            患者注册
+        >
+          <template #prefix>
+            <span class="icon-[icon-park-outline--lock] text-lg text-slate-400" />
+          </template>
+        </n-input>
+        <n-space :size="12" class="w-full">
+          <n-button type="primary" class="!flex-1" size="large" :loading="loading" @click="handleLogin">
+            登录
           </n-button>
+          <n-button class="!flex-1" size="large" secondary @click="router.push('/register')">
+            <template #icon>
+              <span class="icon-[icon-park-outline--plus]" />
+            </template>
+            注册新账号
+          </n-button>
+        </n-space>
+        <div class="flex justify-center text-sm">
           <n-button text type="primary" @click="router.push('/forgot-password')">
             找回密码
           </n-button>
         </div>
       </n-space>
-      <p class="mt-6 text-center text-xs leading-relaxed text-slate-400">
+      <p class="mt-6 text-center text-xs leading-relaxed text-slate-500">
         演示：管理员 admin001 / 123456；医生工号 D001 / 123456；患者 patient001 / 123456
       </p>
     </div>

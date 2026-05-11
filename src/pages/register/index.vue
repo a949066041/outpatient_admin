@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { AUTH_PAGE_BG_URL } from '~/constants/auth-page-bg'
 import { usePatientStore } from '~/store'
 import { nextNumericId } from '~/utils/outpatient'
 
@@ -56,20 +57,35 @@ function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-teal-50 to-slate-100 py-10">
-    <div class="mx-auto max-w-lg rounded-2xl bg-white p-8 shadow-lg">
+  <div
+    class="relative flex min-h-screen items-center justify-end overflow-y-auto bg-slate-800 bg-cover bg-center bg-no-repeat px-4 py-10 sm:px-8 md:pr-16 lg:pr-24"
+    :style="{ backgroundImage: `url(${AUTH_PAGE_BG_URL})` }"
+  >
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
+
+    <div
+      class="relative z-10 my-auto w-full max-w-lg max-h-[min(100vh-2rem,900px)] overflow-y-auto rounded-2xl border border-white/50 bg-white/80 p-8 shadow-2xl backdrop-blur-md sm:p-10"
+    >
       <h1 class="mb-2 text-center text-xl font-semibold text-slate-800">
         患者注册
       </h1>
-      <p class="mb-6 text-center text-sm text-slate-500">
+      <p class="mb-6 text-center text-sm text-slate-600">
         填写用户名、密码、真实姓名、性别、年龄、身份证号、联系电话、家庭住址等信息
       </p>
       <n-form label-placement="left" label-width="96">
         <n-form-item label="用户名">
-          <n-input v-model:value="form.username" placeholder="登录用户名" />
+          <n-input v-model:value="form.username" placeholder="登录用户名">
+            <template #prefix>
+              <span class="icon-[icon-park-outline--user] text-lg text-slate-400" />
+            </template>
+          </n-input>
         </n-form-item>
         <n-form-item label="密码">
-          <n-input v-model:value="form.password" type="password" show-password-on="click" />
+          <n-input v-model:value="form.password" type="password" show-password-on="click">
+            <template #prefix>
+              <span class="icon-[icon-park-outline--lock] text-lg text-slate-400" />
+            </template>
+          </n-input>
         </n-form-item>
         <n-form-item label="真实姓名">
           <n-input v-model:value="form.real_name" />
@@ -103,10 +119,10 @@ function submit() {
           <n-input v-model:value="form.medical_history" type="textarea" :rows="2" />
         </n-form-item>
         <n-space justify="space-between" class="mt-4">
-          <n-button @click="router.push('/login')">
+          <n-button size="large" @click="router.push('/login')">
             返回登录
           </n-button>
-          <n-button type="primary" :loading="loading" @click="submit">
+          <n-button type="primary" size="large" :loading="loading" @click="submit">
             提交注册
           </n-button>
         </n-space>
