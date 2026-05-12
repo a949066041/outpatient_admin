@@ -21,5 +21,6 @@ custom.json
 # Playwright
 /test-results/
 /playwright-report/
+docs/playwright-report/
 /blob-report/
 playwright/.cache/

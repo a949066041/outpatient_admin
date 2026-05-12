@@ -1,0 +1,20 @@
+
+> outpatient-admin@1.0.0 test:e2e /Users/sunlinlin/Project/外包/outpatient_admin
+> playwright test
+
+
+Running 11 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/auth.spec.ts:25:3 › E2E-AUTH / E2E-LOGIN › E2E-AUTH-01: 未登录访问 / 跳转登录 (453ms)
+  ✓   2 [chromium] › e2e/auth.spec.ts:30:3 › E2E-AUTH / E2E-LOGIN › E2E-AUTH-02: 未登录访问 /home 带 redirect (289ms)
+  ✓   3 [chromium] › e2e/auth.spec.ts:37:3 › E2E-AUTH / E2E-LOGIN › E2E-AUTH-03: 未登录访问 /back 带 redirect (397ms)
+  ✓   4 [chromium] › e2e/auth.spec.ts:44:3 › E2E-AUTH / E2E-LOGIN › E2E-LOGIN-02: 错误密码提示 (395ms)
+  ✓   5 [chromium] › e2e/auth.spec.ts:48:3 › E2E-AUTH / E2E-LOGIN › E2E-LOGIN-03: 患者登录进入患者端 (413ms)
+  ✓   6 [chromium] › e2e/auth.spec.ts:54:3 › E2E-AUTH / E2E-LOGIN › E2E-AUTH-04: 患者不可访问 /back (458ms)
+  ✓   7 [chromium] › e2e/auth.spec.ts:61:3 › E2E-AUTH / E2E-LOGIN › E2E-LOGIN-04 + E2E-BACK-01: 管理员登录管理端侧栏 (414ms)
+  ✓   8 [chromium] › e2e/auth.spec.ts:67:3 › E2E-AUTH / E2E-LOGIN › E2E-AUTH-06: 管理员可访问 /home (461ms)
+  ✓   9 [chromium] › e2e/auth.spec.ts:75:3 › E2E-AUTH / E2E-LOGIN › E2E-LOGIN-05: 医生登录进入医生端 (397ms)
+  ✓  10 [chromium] › e2e/auth.spec.ts:82:3 › E2E-HOME › E2E-HOME-01 + E2E-HOME-04: 患者端顶栏与欢迎区 (431ms)
+  ✓  11 [chromium] › e2e/back-admin.spec.ts:18:1 › E2E-BACK-SCHEDULE-01: 排班信息管理页可访问 (594ms)
+
+  11 passed (6.2s)

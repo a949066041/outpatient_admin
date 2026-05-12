@@ -8,7 +8,7 @@ import { usePatientStore } from './patient.store'
 
 const SESSION_STORAGE_KEY = 'outpatient-session'
 
-/** 从 localStorage 解析会话（供路由守卫同步使用） */
+/** 从 localStorage 解析会话（供路由守卫与 hydrate 使用） */
 function readSessionFromLocalStorage(): LoginSession | null {
   if (typeof localStorage === 'undefined')
     return null
@@ -24,6 +24,11 @@ function readSessionFromLocalStorage(): LoginSession | null {
   catch {
     return null
   }
+}
+
+/** 同步读取会话快照（整页刷新时守卫优先使用，避免 useLocalStorage 首帧未就绪） */
+export function readSessionSnapshot(): LoginSession | null {
+  return readSessionFromLocalStorage()
 }
 
 export const useLoginStore = createGlobalState(() => {

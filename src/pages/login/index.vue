@@ -33,8 +33,7 @@ function handleLogin() {
     return
   }
   loading.value = true
-  setTimeout(() => {
-    loading.value = false
+  try {
     const res = login(form.role, a, p)
     if (!res.ok) {
       message.error(res.message || '用户名或密码错误')
@@ -52,7 +51,10 @@ function handleLogin() {
       router.replace('/doctor')
     else
       router.replace('/home')
-  }, 200)
+  }
+  finally {
+    loading.value = false
+  }
 }
 </script>
 
