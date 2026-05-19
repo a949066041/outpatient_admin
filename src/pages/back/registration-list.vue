@@ -106,8 +106,8 @@ const columns = [
       挂号信息管理
     </h3>
     <n-card size="small">
-      <div class="mb-4 flex flex-nowrap items-center gap-4">
-        <n-input-group class="w-full max-w-md shrink-0">
+      <div class="mb-4 flex flex-nowrap items-center gap-3">
+        <n-input-group class="shrink-0" style="width: 320px">
           <n-input
             v-model:value="searchKeyword"
             clearable
@@ -122,7 +122,8 @@ const columns = [
         </n-input-group>
         <n-select
           v-model:value="filterStatus"
-          class="w-36 shrink-0"
+          class="shrink-0"
+          style="width: 132px"
           :options="[
             { label: '全部状态', value: 'all' },
             { label: '待就诊', value: '0' },
