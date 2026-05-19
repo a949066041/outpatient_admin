@@ -29,9 +29,6 @@ function exportTxt(row: import('~/types/outpatient').ExamApplication) {
     <n-h2 prefix="bar">
       导出报告单
     </n-h2>
-    <p class="mb-4 text-slate-600">
-      就诊完成后，可在此查看检验结果并下载报告（演示环境为文本文件，对应论文中 PDF 格式检验报告单导出）。
-    </p>
     <n-empty v-if="!mine.length" description="暂无已出报告的检查" />
     <n-list v-else bordered>
       <n-list-item v-for="a in mine" :key="a.application_id">

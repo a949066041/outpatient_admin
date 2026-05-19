@@ -77,9 +77,6 @@ function hasMedicalRecord(r: Registration) {
     <n-h2 prefix="bar">
       我的挂号
     </n-h2>
-    <p class="mb-4 text-sm text-slate-600">
-      集中管理历史与当前预约；支持在线缴纳挂号费、药费、检查费；就诊完成后可查看电子病历、至「报告单」导出检验报告（演示环境为文本，对应论文 PDF 下载）。
-    </p>
 
     <n-tabs v-model:value="tab" type="line" class="mb-4">
       <n-tab-pane name="all" tab="全部" />

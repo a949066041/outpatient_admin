@@ -12,48 +12,57 @@ const router = useRouter()
 
 const menuOptions: MenuOption[] = [
   {
-    label: '医生管理',
-    key: 'doctor',
+    label: () => h(RouterLink, { to: '/back' }, '首页'),
+    key: 'back-home',
+    icon: renderIcon('icon-[icon-park-outline--home]'),
+  },
+  {
+    label: () => h(RouterLink, { to: '/back/doctor-list' }, '医生信息管理'),
+    key: 'doctor-list',
     icon: renderIcon('icon-[icon-park-outline--stethoscope]'),
-    children: [
-      { label: () => h(RouterLink, { to: '/back/doctor-list' }, '医生信息管理'), key: 'doctor-list' },
-    ],
   },
   {
-    label: '患者与挂号',
-    key: 'patient-reg',
+    label: () => h(RouterLink, { to: '/back/patient-list' }, '患者信息管理'),
+    key: 'patient-list',
     icon: renderIcon('icon-[icon-park-outline--peoples]'),
-    children: [
-      { label: () => h(RouterLink, { to: '/back/patient-list' }, '患者管理'), key: 'patient-list' },
-      { label: () => h(RouterLink, { to: '/back/registration-list' }, '挂号管理'), key: 'registration-list' },
-    ],
   },
   {
-    label: '药品与检查',
-    key: 'med-exam',
+    label: () => h(RouterLink, { to: '/back/registration-list' }, '挂号信息管理'),
+    key: 'registration-list',
+    icon: renderIcon('icon-[icon-park-outline--transaction-order]'),
+  },
+  {
+    label: () => h(RouterLink, { to: '/back/medicine-list' }, '药物信息管理'),
+    key: 'medicine-list',
     icon: renderIcon('icon-[icon-park-outline--experiment]'),
-    children: [
-      { label: () => h(RouterLink, { to: '/back/medicine-list' }, '药物管理'), key: 'medicine-list' },
-      { label: () => h(RouterLink, { to: '/back/exam-item-list' }, '检查项目管理'), key: 'exam-item-list' },
-      { label: () => h(RouterLink, { to: '/back/exam-apply-list' }, '检查申请执行'), key: 'exam-apply-list' },
-    ],
   },
   {
-    label: '病床与排班',
-    key: 'bed-sch',
+    label: () => h(RouterLink, { to: '/back/exam-item-list' }, '检查项目管理'),
+    key: 'exam-item-list',
+    icon: renderIcon('icon-[icon-park-outline--experiment]'),
+  },
+  {
+    label: () => h(RouterLink, { to: '/back/bed-list' }, '病床信息管理'),
+    key: 'bed-list',
     icon: renderIcon('icon-[icon-park-outline--building-four]'),
-    children: [
-      { label: () => h(RouterLink, { to: '/back/bed-list' }, '病床管理'), key: 'bed-list' },
-      { label: () => h(RouterLink, { to: '/back/department-list' }, '科室管理'), key: 'department-list' },
-      { label: () => h(RouterLink, { to: '/back/schedule-manage' }, '排班信息管理'), key: 'schedule-manage' },
-    ],
   },
   {
-    label: '运营分析',
-    key: 'stats',
+    label: () => h(RouterLink, { to: '/back/schedule-manage' }, '排班信息管理'),
+    key: 'schedule-manage',
+    icon: renderIcon('icon-[icon-park-outline--calendar]'),
+  },
+  {
+    label: () => h(RouterLink, { to: '/back/stats' }, '数据统计分析'),
+    key: 'stats-page',
     icon: renderIcon('icon-[icon-park-outline--chart-line]'),
+  },
+  {
+    label: '基础维护',
+    key: 'base',
+    icon: renderIcon('icon-[icon-park-outline--setting]'),
     children: [
-      { label: () => h(RouterLink, { to: '/back/stats' }, '数据统计'), key: 'stats-page' },
+      { label: () => h(RouterLink, { to: '/back/department-list' }, '科室管理'), key: 'department-list' },
+      { label: () => h(RouterLink, { to: '/back/exam-apply-list' }, '检查申请执行'), key: 'exam-apply-list' },
     ],
   },
 ]
@@ -69,7 +78,7 @@ function handelLogout() {
     <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240">
       <div class="px-4 py-5">
         <div class="text-lg font-bold text-teal-700">
-          门诊管理后台
+          医院管理系统
         </div>
         <div class="mt-1 text-xs leading-snug text-slate-500">
           （三）管理员模块：人员与基础数据、业务办理、排班与资源、统计分析

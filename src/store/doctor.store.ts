@@ -1,85 +1,8 @@
 import type { Doctor } from '~/types/outpatient'
 import { createGlobalState } from '@vueuse/core'
+import { MOCK_DOCTORS } from '~/data/admin-mock'
 import { useCurd } from '~/hooks'
 
-const initData: Doctor[] = [
-  {
-    doctor_id: 1,
-    doctor_no: '1000',
-    password: '123456',
-    name: '张三',
-    gender: 1,
-    age: 45,
-    department_id: 1,
-    title: '主任医师',
-    phone: '13800001001',
-    email: 'zhangsan@hospital.com',
-    introduction: '从事神经内科临床工作二十余年，擅长脑血管病、帕金森病等神经系统常见病诊疗。',
-    status: 1,
-    register_fee: 10,
-  },
-  {
-    doctor_id: 2,
-    doctor_no: 'D002',
-    password: '123456',
-    name: '李华',
-    gender: 0,
-    age: 36,
-    department_id: 5,
-    title: '副主任医师',
-    phone: '13800001002',
-    email: 'lihua@hospital.com',
-    introduction: '擅长冠心病、高血压、心力衰竭等心血管疾病的诊治与随访。',
-    status: 1,
-    register_fee: 12,
-  },
-  {
-    doctor_id: 3,
-    doctor_no: 'D003',
-    password: '123456',
-    name: '王强',
-    gender: 1,
-    age: 45,
-    department_id: 9,
-    title: '主任医师',
-    phone: '13800001003',
-    email: 'wangqiang@hospital.com',
-    introduction: '普外微创手术、胃肠肿瘤外科治疗经验丰富。',
-    status: 1,
-    register_fee: 15,
-  },
-  {
-    doctor_id: 4,
-    doctor_no: 'D004',
-    password: '123456',
-    name: '赵敏',
-    gender: 0,
-    age: 38,
-    department_id: 2,
-    title: '主治医师',
-    phone: '13800001004',
-    email: 'zhaomin@hospital.com',
-    introduction: '呼吸与危重症医学科，擅长慢阻肺、支气管哮喘及肺部感染诊疗。',
-    status: 1,
-    register_fee: 10,
-  },
-  {
-    doctor_id: 5,
-    doctor_no: 'D005',
-    password: '123456',
-    name: '周中医',
-    gender: 1,
-    age: 50,
-    department_id: 24,
-    title: '主任中医师',
-    phone: '13800001005',
-    email: 'zhouzy@hospital.com',
-    introduction: '中医内科调理、脾胃病及亚健康中医辨证论治。',
-    status: 1,
-    register_fee: 10,
-  },
-]
-
 export const useDoctorStore = createGlobalState(() => {
-  return useCurd<Doctor>({ key: 'outpatient-doctor-list-v3', initData })
+  return useCurd<Doctor>({ key: 'outpatient-doctor-list-v5', initData: MOCK_DOCTORS })
 })

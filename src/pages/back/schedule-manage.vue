@@ -16,7 +16,7 @@ const CATEGORY_ORDER = ['内科', '外科', '妇产科', '儿科', '五官科', 
 
 const dateOptions = computed(() => {
   const list: { label: string, full: string }[] = []
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 30; i++) {
     const d = dayjs().add(i, 'day')
     list.push({ label: d.format('MM-DD'), full: d.format('YYYY-MM-DD') })
   }
@@ -397,29 +397,28 @@ const deptFilterOptions = computed(() =>
     <n-h2 prefix="bar">
       排班信息管理
     </n-h2>
-    <p class="mb-6 max-w-3xl text-sm text-slate-600">
-      对应论文管理员模块中的<strong>排班信息管理</strong>：先选择<strong>值班日期</strong>，再按一级分类选择<strong>科室</strong>，在医生列表中为医生设置<strong>上午/下午</strong>时段与<strong>号源上限</strong>；支持对已有排班进行<strong>修改、停诊/恢复、删除</strong>（已有预约的排班不可删除），并在下方进行<strong>全院排班记录查询与维护</strong>。
-    </p>
 
     <!-- 图 5.4：日期条 -->
     <section class="mb-6">
-      <h3 class="mb-2 text-base font-semibold text-slate-700">
-        第一步：选择值班日期
+      <h3 class="mb-2 flex items-center gap-2 text-base font-semibold text-slate-700">
+        <span class="icon-[icon-park-outline--list-view] text-blue-600" />
+        请选择值班日期：
       </h3>
       <p class="mb-3 text-xs text-slate-500">
-        切换日期后将返回「科室选择」，避免误操作其他日期的科室。
+        仅可安排未来 30 日内排班；切换日期后将返回「科室选择」。
       </p>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="opt in dateOptions"
           :key="opt.full"
           type="button"
-          class="min-w-[4.5rem] rounded-md px-3 py-2 text-sm font-medium text-white shadow transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+          class="inline-flex min-w-[4.5rem] items-center justify-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-white shadow transition focus:outline-none focus:ring-2 focus:ring-blue-400"
           :class="opt.full === selectedDateFull
             ? 'bg-blue-800 ring-2 ring-blue-300 ring-offset-1'
             : 'bg-blue-600 hover:bg-blue-700'"
           @click="pickDate(opt.full)"
         >
+          <span class="icon-[icon-park-outline--doc-detail] text-base opacity-90" />
           {{ opt.label }}
         </button>
       </div>
@@ -460,7 +459,7 @@ const deptFilterOptions = computed(() =>
         <NButton text type="primary" @click="backToDepartments">
           返回科室
         </NButton>
-        <span class="text-slate-400">></span>
+        <span class="text-slate-400">&gt;</span>
         <span class="font-medium text-slate-800">{{ selectedDepartment?.dept_name ?? '—' }}</span>
         <span class="text-slate-400">|</span>
         <span class="text-slate-600">日期 {{ selectedDateFull }}</span>

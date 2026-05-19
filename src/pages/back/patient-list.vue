@@ -9,8 +9,6 @@ import { nextNumericId } from '~/utils/outpatient'
 const store = usePatientStore()
 const {
   dataList,
-  page,
-  onUpdatePage,
   removeData,
   openModalState,
   openModal,
@@ -22,6 +20,32 @@ const {
   isUpdate,
 } = store
 
+const searchKeyword = ref('')
+const page = ref(1)
+const pageSize = ref(8)
+
+const filteredPatients = computed(() => {
+  const q = searchKeyword.value.trim()
+  if (!q)
+    return dataList.value
+  return dataList.value.filter(
+    p =>
+      p.real_name.includes(q)
+      || p.username.includes(q)
+      || p.phone.includes(q)
+      || p.id_card.includes(q),
+  )
+})
+
+const pageData = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filteredPatients.value.slice(start, start + pageSize.value)
+})
+
+watch([searchKeyword, pageSize], () => {
+  page.value = 1
+})
+
 function confirmSave() {
   if (!isUpdate.value) {
     changeModal.value.patient_id = nextNumericId(dataList.value, 'patient_id')
@@ -31,24 +55,38 @@ function confirmSave() {
   saveForm()
 }
 
+function rowIndex(row: Patient) {
+  return dataList.value.findIndex(p => p.patient_id === row.patient_id)
+}
+
 const columns = [
-  { title: '用户名', key: 'username' },
-  { title: '姓名', key: 'real_name' },
-  { title: '身份证', key: 'id_card' },
-  { title: '电话', key: 'phone' },
+  { title: '用户名', key: 'username', width: 110 },
+  { title: '姓名', key: 'real_name', width: 88 },
+  {
+    title: '性别',
+    key: 'gender',
+    width: 64,
+    render: (row: Patient) => (row.gender === 1 ? '男' : '女'),
+  },
+  { title: '年龄', key: 'age', width: 64 },
+  { title: '身份证', key: 'id_card', width: 168, ellipsis: { tooltip: true } },
+  { title: '电话', key: 'phone', width: 120 },
+  { title: '住址', key: 'address', ellipsis: { tooltip: true } },
   {
     title: '状态',
     key: 'status',
+    width: 80,
     render: (row: Patient) => h(ColorColumn, { text: row.status === 1 ? '正常' : '禁用', danger: row.status !== 1 }),
   },
   {
     title: '操作',
     key: 'action',
-    render: (row: Patient, index: number) =>
+    width: 120,
+    render: (row: Patient) =>
       h(ActionButton, {
-        onDelete: () => removeData(index),
+        onDelete: () => removeData(rowIndex(row)),
         isDel: true,
-        onEdit: () => openModal(row, index),
+        onEdit: () => openModal(row, rowIndex(row)),
       }),
   },
 ]
@@ -56,10 +94,40 @@ const columns = [
 
 <template>
   <div>
-    <n-button type="primary" class="!mb-4" @click="openModal()">
-      新增患者档案
-    </n-button>
-    <n-data-table :columns="columns" :data="dataList" :pagination="{ page, onUpdatePage }" />
+    <h3 class="mb-4 text-lg font-semibold text-slate-800">
+      患者信息管理
+    </h3>
+    <n-card size="small">
+      <div class="mb-4 flex flex-nowrap items-center justify-between gap-4">
+        <n-input-group class="w-full max-w-md shrink-0">
+          <n-input
+            v-model:value="searchKeyword"
+            clearable
+            placeholder="请输入姓名、用户名或手机号查询"
+            @keydown.enter="page = 1"
+          />
+          <n-button type="primary" @click="page = 1">
+            <template #icon>
+              <span class="icon-[icon-park-outline--search]" />
+            </template>
+          </n-button>
+        </n-input-group>
+        <n-button class="shrink-0" type="primary" @click="openModal()">
+          新增患者档案
+        </n-button>
+      </div>
+      <n-data-table :columns="columns" :data="pageData" :bordered="true" size="small" />
+      <div class="mt-3 flex justify-end gap-4 text-sm text-slate-600">
+        <span>共 {{ filteredPatients.length }} 条</span>
+        <n-pagination
+          v-model:page="page"
+          v-model:page-size="pageSize"
+          :item-count="filteredPatients.length"
+          show-size-picker
+          :page-sizes="[8, 10, 20]"
+        />
+      </div>
+    </n-card>
     <BackCrudModal
       v-model:show="openModalState"
       :title="updateTitle"

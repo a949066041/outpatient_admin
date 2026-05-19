@@ -34,6 +34,8 @@ export interface Doctor {
   title: string
   phone: string
   email: string
+  /** 证件号（论文医生信息管理列表展示） */
+  id_card?: string
   introduction: string
   status: 0 | 1
   /** 挂号费（元），论文示例 10 元 */
