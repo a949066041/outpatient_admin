@@ -80,9 +80,6 @@ function handelLogout() {
         <div class="text-lg font-bold text-teal-700">
           医院管理系统
         </div>
-        <div class="mt-1 text-xs leading-snug text-slate-500">
-          （三）管理员模块：人员与基础数据、业务办理、排班与资源、统计分析
-        </div>
       </div>
       <n-menu
         :collapsed-width="64"

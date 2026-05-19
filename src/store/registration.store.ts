@@ -6,7 +6,7 @@ import { genNo, nextNumericId } from '~/utils/outpatient'
 import { useScheduleStore } from './schedule.store'
 
 export const useRegistrationStore = createGlobalState(() => {
-  const list = useLocalStorage<Registration[]>('outpatient-registration-list-v3', buildRegistrationSeed())
+  const list = useLocalStorage<Registration[]>('outpatient-registration-list-v4', buildRegistrationSeed())
   const { dataList: schedules, updateData: updateSchedule } = useScheduleStore()
 
   function findSchedule(doctorId: number, workDate: string, timeSlot: string) {

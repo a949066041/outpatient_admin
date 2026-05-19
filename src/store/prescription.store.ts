@@ -2,10 +2,11 @@ import type { Prescription, PrescriptionDetail } from '~/types/outpatient'
 import { createGlobalState, useLocalStorage } from '@vueuse/core'
 import { genNo, nextNumericId } from '~/utils/outpatient'
 import { buildPrescriptionSeed } from '~/data/doctor-mock'
+import { buildPatientPrescriptionExtras } from '~/data/patient-mock'
 import { useMedicineStore } from './medicine.store'
 
 export const usePrescriptionStore = createGlobalState(() => {
-  const list = useLocalStorage<Prescription[]>('outpatient-prescription-list-v2', buildPrescriptionSeed())
+  const list = useLocalStorage<Prescription[]>('outpatient-prescription-list-v3', [...buildPrescriptionSeed(), ...buildPatientPrescriptionExtras()])
   const { dataList: medicines, updateData: updateMedicine } = useMedicineStore()
 
   function createPrescription(input: {

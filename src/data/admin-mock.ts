@@ -13,6 +13,7 @@ import type {
 } from '~/types/outpatient'
 import dayjs from 'dayjs'
 import { buildDoctorRegistrationExtras } from '~/data/doctor-mock'
+import { buildPatientRegistrationExtras } from '~/data/patient-mock'
 
 export const MOCK_DOCTORS: Doctor[] = [
   { doctor_id: 1, doctor_no: '1000', password: '123456', name: '张三', gender: 1, age: 45, department_id: 1, title: '主任医师', phone: '13899999999', email: 'zhangsan@hospital.com', id_card: '210102197801011234', introduction: '从事神经内科临床工作二十余年，擅长脑血管病、帕金森病等。', status: 1, register_fee: 10 },
@@ -156,8 +157,8 @@ export function buildRegistrationSeed(): Registration[] {
     { patient_id: 1, doctor_id: 3, department_id: 9, register_date: dates[1]!, time_slot: '上午', register_fee: 15, status: 0, is_paid: 1, pay_time: now, symptom_desc: '上腹隐痛一周', diagnosis: '', visiting: false },
     { patient_id: 4, doctor_id: 3, department_id: 9, register_date: past[6]!, time_slot: '下午', register_fee: 15, status: 1, is_paid: 1, pay_time: now, symptom_desc: '术后换药', diagnosis: '伤口愈合良好', visiting: false },
     { patient_id: 1, doctor_id: 1, department_id: 1, register_date: past[4]!, time_slot: '上午', register_fee: 10, status: 1, is_paid: 1, pay_time: now, symptom_desc: '头晕', diagnosis: '椎基底动脉供血不足（轻度）', visit_end_time: `${past[4]} 10:38:00`, visiting: false },
-    { patient_id: 1, doctor_id: 2, department_id: 5, register_date: past[5]!, time_slot: '下午', register_fee: 30, status: 1, is_paid: 1, pay_time: now, symptom_desc: '活动后心悸', diagnosis: '窦性心动过速', visiting: false },
-    { patient_id: 1, doctor_id: 5, department_id: 24, register_date: past[6]!, time_slot: '下午', register_fee: 25, status: 1, is_paid: 1, pay_time: now, symptom_desc: '胃脘胀满', diagnosis: '脾虚湿困', visiting: false },
+    { patient_id: 1, doctor_id: 2, department_id: 5, register_date: past[5]!, time_slot: '下午', register_fee: 30, status: 1, is_paid: 1, pay_time: now, symptom_desc: '活动后心悸', diagnosis: '窦性心动过速', visit_end_time: `${past[5]} 16:45:00`, visiting: false },
+    { patient_id: 1, doctor_id: 5, department_id: 24, register_date: past[6]!, time_slot: '下午', register_fee: 25, status: 1, is_paid: 1, pay_time: now, symptom_desc: '胃脘胀满', diagnosis: '脾虚湿困', visit_end_time: `${past[6]} 15:30:00`, visiting: false },
     { patient_id: 13, doctor_id: 7, department_id: 17, register_date: dates[0]!, time_slot: '上午', register_fee: 12, status: 0, is_paid: 1, pay_time: now, symptom_desc: '哮喘复诊', diagnosis: '', visiting: false },
     { patient_id: 14, doctor_id: 9, department_id: 13, register_date: dates[7]!, time_slot: '下午', register_fee: 18, status: 0, is_paid: 0, pay_time: null, symptom_desc: '膝关节痛', diagnosis: '', visiting: false },
     { patient_id: 1, doctor_id: 1, department_id: 1, register_date: dates[2]!, time_slot: '下午', register_fee: 10, status: 2, is_paid: 1, pay_time: now, symptom_desc: '复查', diagnosis: '', visiting: false },
@@ -171,7 +172,7 @@ export function buildRegistrationSeed(): Registration[] {
     { patient_id: 12, doctor_id: 6, department_id: 15, register_date: allDates[5]!, time_slot: '下午', register_fee: 35, status: 1, is_paid: 1, pay_time: now, symptom_desc: '备孕咨询', diagnosis: '孕前检查已完成', visiting: false },
   ]
 
-  const extras = buildDoctorRegistrationExtras()
+  const extras = [...buildDoctorRegistrationExtras(), ...buildPatientRegistrationExtras()]
   const all = [...templates, ...extras]
   return all.map((t, i) => ({
     ...t,

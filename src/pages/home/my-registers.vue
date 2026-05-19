@@ -1,51 +1,77 @@
 <script setup lang="ts">
 import type { Registration } from '~/types/outpatient'
+import { NButton, NTag } from 'naive-ui'
+import { h } from 'vue'
 import { useRouter } from 'vue-router'
+import { usePatientContext } from '~/composables/usePatientContext'
 import {
-  useDepartmentStore,
-  useDoctorStore,
   useExamApplicationStore,
-  useLoginStore,
   usePrescriptionStore,
   useRegistrationStore,
 } from '~/store'
 
 const router = useRouter()
 const message = useMessage()
-const { list, payRegister, cancelRegister } = useRegistrationStore()
-const { dataList: doctors } = useDoctorStore()
-const { dataList: departments } = useDepartmentStore()
-const { currentProfile } = useLoginStore()
-const { list: rxList, payPrescription } = usePrescriptionStore()
-const { list: examList, pay: payExam } = useExamApplicationStore()
+const { payRegister, cancelRegister } = useRegistrationStore()
+const { payPrescription } = usePrescriptionStore()
+const { pay: payExam } = useExamApplicationStore()
+const {
+  registrations,
+  patientId,
+  patientRow,
+  doctorName,
+  doctorNo,
+  regTimeLabel,
+  feeDue,
+  regStatusLabel,
+  payStatusLabel,
+  examsForRegister,
+  prescriptions,
+  exams,
+} = usePatientContext()
 
 const tab = ref<'all' | '0' | '1' | '2'>('all')
+const keyword = ref('')
+const page = ref(1)
+const pageSize = ref(8)
 
 const mine = computed(() =>
-  list.value.filter(r => r.patient_id === currentProfile.value?.id).sort((a, b) => b.register_id - a.register_id),
+  registrations.value
+    .filter(r => r.patient_id === patientId.value)
+    .sort((a, b) => b.register_id - a.register_id),
 )
 
 const filtered = computed(() => {
-  if (tab.value === 'all')
-    return mine.value
-  return mine.value.filter(r => String(r.status) === tab.value)
+  const q = keyword.value.trim()
+  let rows = mine.value
+  if (tab.value !== 'all')
+    rows = rows.filter(r => String(r.status) === tab.value)
+  if (!q)
+    return rows
+  return rows.filter(
+    r =>
+      r.register_no.includes(q)
+      || doctorName(r.doctor_id).includes(q)
+      || String(r.patient_id).includes(q),
+  )
+})
+
+const pageData = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filtered.value.slice(start, start + pageSize.value)
+})
+
+watch([tab, keyword], () => {
+  page.value = 1
 })
 
 const myRx = computed(() =>
-  rxList.value.filter(p => p.patient_id === currentProfile.value?.id && p.status === 0),
+  prescriptions.value.filter(p => p.patient_id === patientId.value && p.status === 0),
 )
 
 const myExams = computed(() =>
-  examList.value.filter(p => p.patient_id === currentProfile.value?.id && p.status === 0 && p.is_paid === 0),
+  exams.value.filter(p => p.patient_id === patientId.value && p.status === 0 && p.is_paid === 0),
 )
-
-function dname(id: number) {
-  return doctors.value.find(d => d.doctor_id === id)?.name ?? id
-}
-
-function depLoc(reg: Registration) {
-  return departments.value.find(d => d.department_id === reg.department_id)?.location ?? '—'
-}
 
 function pay(r: Registration) {
   payRegister(r.register_id)
@@ -67,16 +93,22 @@ function payEx(id: number) {
   message.success('检查费已支付（演示）')
 }
 
-function hasMedicalRecord(r: Registration) {
-  return r.status === 1 && !!(r.symptom_desc || r.diagnosis)
+function viewReports(r: Registration) {
+  if (examsForRegister(r.register_id).length)
+    router.push('/home/reports')
+  else
+    message.info('该挂号暂无已出报告的检查')
 }
 </script>
 
 <template>
   <div>
-    <n-h2 prefix="bar">
+    <h2 class="mb-1 text-xl font-semibold text-slate-800">
       我的挂号
-    </n-h2>
+    </h2>
+    <p class="mb-4 text-sm text-slate-500">
+      查看历史与当前预约，在线缴纳挂号费、药费、检查费；就诊完成后可查看电子病历并导出报告单（图 5.13）
+    </p>
 
     <n-tabs v-model:value="tab" type="line" class="mb-4">
       <n-tab-pane name="all" tab="全部" />
@@ -85,85 +117,136 @@ function hasMedicalRecord(r: Registration) {
       <n-tab-pane name="2" tab="已取消" />
     </n-tabs>
 
+    <n-input
+      v-model:value="keyword"
+      class="mb-4 max-w-sm"
+      clearable
+      placeholder="请输入挂号单号 / 医生姓名查询"
+    />
+
     <n-empty v-if="!filtered.length" description="暂无符合条件的挂号记录" />
-    <n-list v-else bordered>
-      <n-list-item v-for="r in filtered" :key="r.register_id">
-        <div class="flex flex-col gap-3">
-          <div class="flex flex-wrap items-center gap-2">
-            <n-tag type="info">
-              {{ r.register_no }}
-            </n-tag>
-            <span class="text-slate-700">{{ r.register_date }} {{ r.time_slot }}</span>
-            <span class="text-slate-600">医生：{{ dname(r.doctor_id) }}</span>
-            <span class="text-sm text-slate-500">地点：{{ depLoc(r) }}</span>
-            <n-tag size="small" :type="r.status === 0 ? 'warning' : r.status === 1 ? 'success' : 'default'">
-              {{ r.status === 0 ? '待就诊' : r.status === 1 ? '已就诊' : '已取消' }}
-            </n-tag>
-            <n-tag size="small" :type="r.is_paid ? 'success' : 'error'">
-              {{ r.is_paid ? '已缴费' : '未缴费' }}
-            </n-tag>
-          </div>
-          <n-space v-if="r.status !== 2">
-            <n-button v-if="r.is_paid === 0 && r.status === 0" size="small" type="primary" @click="pay(r)">
-              支付挂号费 ¥{{ r.register_fee }}
-            </n-button>
-            <n-button v-if="r.status === 0" size="small" tertiary @click="cancel(r)">
-              取消预约
-            </n-button>
-          </n-space>
-          <!-- 论文：就诊完成后查看电子病历 -->
-          <n-collapse v-if="r.status === 1" class="!mt-0">
-            <n-collapse-item title="电子病历（主诉与诊断）" :name="`emr-${r.register_id}`">
-              <template v-if="hasMedicalRecord(r)">
-                <p class="text-sm">
-                  <strong>主诉 / 症状：</strong>{{ r.symptom_desc || '—' }}
-                </p>
-                <p class="mt-2 text-sm">
-                  <strong>诊断：</strong>{{ r.diagnosis || '—' }}
-                </p>
-              </template>
-              <n-empty v-else description="医生尚未录入病历内容" size="small" />
-              <n-button class="mt-2" size="tiny" quaternary type="primary" @click="router.push('/home/reports')">
-                导出检验报告单
-              </n-button>
-            </n-collapse-item>
-          </n-collapse>
-        </div>
-      </n-list-item>
-    </n-list>
+    <template v-else>
+      <n-data-table
+        size="small"
+        :columns="[
+          { title: '挂号单号', key: 'register_no', width: 130 },
+          { title: '本人id', key: 'pid', width: 72, render: (row: Registration) => patientRow()?.patient_id ?? row.patient_id },
+          { title: '姓名', key: 'name', width: 88, render: () => patientRow()?.real_name ?? '—' },
+          { title: '医生id', key: 'did', width: 72, render: (row: Registration) => doctorNo(row.doctor_id) },
+          { title: '医生姓名', key: 'dname', width: 88, render: (row: Registration) => doctorName(row.doctor_id) },
+          { title: '挂号时间', key: 'time', width: 170, render: (row: Registration) => regTimeLabel(row) },
+          { title: '结束时间', key: 'end', width: 160, render: (row: Registration) => row.visit_end_time || '—' },
+          { title: '需交费用/元', key: 'fee', width: 100, render: (row: Registration) => feeDue(row) },
+          {
+            title: '缴费状态',
+            key: 'pay',
+            width: 88,
+            render: (row: Registration) =>
+              h(NTag, { size: 'small', type: row.is_paid ? 'success' : 'warning' }, { default: () => payStatusLabel(row.is_paid) }),
+          },
+          {
+            title: '挂号状态',
+            key: 'status',
+            width: 88,
+            render: (row: Registration) => {
+              const done = row.status === 1
+              return h(NTag, { size: 'small', type: done ? 'success' : row.status === 0 ? 'warning' : 'default' }, { default: () => regStatusLabel(row) })
+            },
+          },
+          {
+            title: '报告单',
+            key: 'report',
+            width: 100,
+            render: (row: Registration) =>
+              row.status === 1 && examsForRegister(row.register_id).length
+                ? h(NButton, { size: 'small', type: 'primary', onClick: () => viewReports(row) }, { default: () => '查看' })
+                : '—',
+          },
+          {
+            title: '操作',
+            key: 'op',
+            width: 160,
+            render: (row: Registration) => {
+              const btns = []
+              if (row.status === 0 && row.is_paid === 0)
+                btns.push(h(NButton, { size: 'tiny', type: 'primary', onClick: () => pay(row) }, { default: () => '缴费' }))
+              if (row.status === 0)
+                btns.push(h(NButton, { size: 'tiny', onClick: () => cancel(row) }, { default: () => '取消' }))
+              return h('div', { class: 'flex flex-wrap gap-1' }, btns)
+            },
+          },
+        ]"
+        :data="pageData"
+        :pagination="false"
+      />
+      <div class="mt-3 flex justify-end">
+        <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="filtered.length" :page-sizes="[8, 16, 24]" show-size-picker />
+      </div>
+    </template>
 
     <n-divider />
 
-    <n-h3 prefix="bar">
+    <h3 class="mb-3 text-base font-semibold text-slate-800">
       待缴处方
-    </n-h3>
+    </h3>
     <n-empty v-if="!myRx.length" description="暂无待缴费处方" />
-    <n-list v-else bordered>
-      <n-list-item v-for="p in myRx" :key="p.prescription_id">
-        <div class="flex items-center justify-between gap-2">
-          <span>{{ p.prescription_no }} · 合计 ¥{{ p.total_amount }}</span>
-          <n-button size="small" type="primary" @click="payRx(p.prescription_id)">
-            支付药费
-          </n-button>
-        </div>
-      </n-list-item>
-    </n-list>
+    <n-data-table
+      v-else
+      size="small"
+      :columns="[
+        { title: '处方单号', key: 'prescription_no' },
+        { title: '金额/元', key: 'total_amount', width: 100 },
+        {
+          title: '操作',
+          key: 'op',
+          width: 100,
+          render: (row: { prescription_id: number, total_amount: number }) =>
+            h(NButton, { size: 'small', type: 'primary', onClick: () => payRx(row.prescription_id) }, { default: () => '支付药费' }),
+        },
+      ]"
+      :data="myRx"
+      :pagination="false"
+    />
 
     <n-divider />
 
-    <n-h3 prefix="bar">
+    <h3 class="mb-3 text-base font-semibold text-slate-800">
       待缴检查费
-    </n-h3>
+    </h3>
     <n-empty v-if="!myExams.length" description="暂无待缴检查申请" />
-    <n-list v-else bordered>
-      <n-list-item v-for="e in myExams" :key="e.application_id">
-        <div class="flex items-center justify-between gap-2">
-          <span>{{ e.application_no }}</span>
-          <n-button size="small" type="primary" @click="payEx(e.application_id)">
-            支付检查费
-          </n-button>
-        </div>
-      </n-list-item>
-    </n-list>
+    <n-data-table
+      v-else
+      size="small"
+      :columns="[
+        { title: '申请单号', key: 'application_no' },
+        {
+          title: '操作',
+          key: 'op',
+          width: 100,
+          render: (row: { application_id: number }) =>
+            h(NButton, { size: 'small', type: 'primary', onClick: () => payEx(row.application_id) }, { default: () => '支付' }),
+        },
+      ]"
+      :data="myExams"
+      :pagination="false"
+    />
+
+    <n-collapse v-if="mine.some(r => r.status === 1)" class="mt-6">
+      <n-collapse-item title="电子病历（已就诊挂号）" name="emr">
+        <n-list bordered>
+          <n-list-item v-for="r in mine.filter(x => x.status === 1)" :key="r.register_id">
+            <p class="text-sm font-medium">
+              {{ r.register_no }} · {{ doctorName(r.doctor_id) }}
+            </p>
+            <p class="mt-1 text-sm text-slate-600">
+              主诉：{{ r.symptom_desc || '—' }}
+            </p>
+            <p class="mt-1 text-sm text-slate-600">
+              诊断：{{ r.diagnosis || '—' }}
+            </p>
+          </n-list-item>
+        </n-list>
+      </n-collapse-item>
+    </n-collapse>
   </div>
 </template>

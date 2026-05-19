@@ -7,6 +7,7 @@ import {
   useDepartmentStore,
   useDoctorStore,
   useLoginStore,
+  usePatientStore,
   useRegistrationStore,
   useReviewStore,
   useScheduleStore,
@@ -19,16 +20,25 @@ const { dataList: schedules } = useScheduleStore()
 const { list: registrations, book, isSlotFull, hasConflict } = useRegistrationStore()
 const { avgScoreForDoctor } = useReviewStore()
 const { currentProfile, currentRole } = useLoginStore()
+const patientRow = computed(() => {
+  if (!currentProfile.value)
+    return null
+  const { dataList } = usePatientStore()
+  return dataList.value.find(p => p.patient_id === currentProfile.value!.id) ?? null
+})
 
 /** 与论文患者端图 5.10 一致的一级分类（含中医科） */
 const CATEGORY_ORDER = ['内科', '外科', '妇产科', '儿科', '五官科', '中医科'] as const
 
-const step = ref<1 | 2 | 3>(1)
+const step = ref<1 | 2>(1)
 const deptId = ref<number | null>(null)
 const pickDate = ref(dayjs().format('YYYY-MM-DD'))
 const doctorId = ref<number | null>(null)
 /** 勿用变量名 slot，避免与模板/SFC 语义冲突导致 v-model 不同步 */
 const pickedTimeSlot = ref('')
+
+/** 论文图 5.12：填写挂号信息弹窗 */
+const showBookForm = ref(false)
 
 /** 论文图 5.12：预约成功后展示挂号详情 */
 const showSuccessDetail = ref(false)
@@ -164,10 +174,8 @@ function goStep1() {
 }
 
 function goStep2() {
-  if (step.value === 3) {
-    pickedTimeSlot.value = ''
-    step.value = 2
-  }
+  pickedTimeSlot.value = ''
+  showBookForm.value = false
 }
 
 function pickDateBtn(full: string) {
@@ -179,7 +187,12 @@ function pickDateBtn(full: string) {
 function openSlotStep(row: Doctor) {
   doctorId.value = row.doctor_id
   pickedTimeSlot.value = ''
-  step.value = 3
+  showBookForm.value = true
+}
+
+function closeBookForm() {
+  showBookForm.value = false
+  pickedTimeSlot.value = ''
 }
 
 function confirmBook() {
@@ -231,6 +244,7 @@ function confirmBook() {
     register_fee: fee,
   }
   showSuccessDetail.value = true
+  showBookForm.value = false
   message.success('预约成功')
 }
 
@@ -307,10 +321,10 @@ const doctorColumns = [
       <span
         class="cursor-pointer"
         :class="step >= 2 ? 'font-medium text-teal-700 hover:underline' : ''"
-        @click="step === 3 ? goStep2() : undefined"
+        @click="undefined"
       >日期选择</span>
       <span class="text-slate-300">></span>
-      <span :class="step === 3 ? 'font-medium text-slate-800' : 'text-slate-400'">挂号</span>
+      <span class="text-slate-400">挂号</span>
     </div>
 
     <!-- 第一步：图 5.10 全院科室列表及各科室简介 -->
@@ -378,12 +392,17 @@ const doctorColumns = [
         class="my-8"
       />
       <template v-else>
+        <h3 class="mb-3 flex items-center gap-2 text-base font-semibold text-slate-800">
+          <span class="icon-[icon-park-outline--stethoscope] text-teal-600" />
+          {{ selectedDeptName }}医生列表
+        </h3>
         <n-data-table
           :columns="doctorColumns"
           :data="doctorsOnDuty"
           :bordered="true"
           :single-line="false"
           size="small"
+          :pagination="{ pageSize: 8 }"
         />
       </template>
 
@@ -392,44 +411,54 @@ const doctorColumns = [
       </NButton>
     </section>
 
-    <!-- 第三步：图 5.12 时段号源 + 确认（验证资格、生成单号、可在线支付） -->
-    <section v-show="step === 3 && doctorId">
-      <n-card title="选择挂号时段（展示各时段号源剩余）" class="max-w-lg">
-        <p class="mb-4 text-sm text-slate-600">
-          {{ selectedDeptName }} · {{ pickDate }} ·
-          {{ selectedDoctor?.name }}
-          （挂号费 {{ selectedDoctor ? regFee(selectedDoctor) : 0 }} 元）
-        </p>
-        <n-alert v-if="!slotOptions.length" type="warning" title="该日无可预约时段" />
-        <n-radio-group v-else v-model:value="pickedTimeSlot" name="book-time-slot">
-          <n-space vertical>
-            <n-radio
-              v-for="opt in slotOptions"
-              :key="opt.value"
-              :value="opt.value"
-              :disabled="opt.disabled"
-            >
-              {{ opt.label }}
-              <n-text v-if="opt.disabled" depth="3" class="ml-2">
-                已满
-              </n-text>
-            </n-radio>
-          </n-space>
-        </n-radio-group>
-        <n-space class="mt-6">
-          <NButton @click="goStep2">
-            上一步
-          </NButton>
-          <NButton
-            type="primary"
-            :disabled="!pickedTimeSlot || !!slotOptions.find(o => o.value === pickedTimeSlot && o.disabled) || currentRole !== '患者'"
-            @click="confirmBook"
-          >
-            确认预约
-          </NButton>
-        </n-space>
-      </n-card>
-    </section>
+    <!-- 图 5.12：填写挂号信息 -->
+    <n-modal
+      v-model:show="showBookForm"
+      preset="dialog"
+      title="填写挂号信息"
+      :mask-closable="false"
+      style="width: 520px; max-width: 95vw"
+    >
+      <n-form label-placement="left" label-width="110">
+        <n-form-item label="挂号时间段" required>
+          <n-select
+            v-model:value="pickedTimeSlot"
+            placeholder="请选择时段"
+            :options="slotOptions.map(o => ({ label: o.disabled ? `${o.label}（已满）` : o.label, value: o.value, disabled: o.disabled }))"
+          />
+        </n-form-item>
+        <n-form-item label="挂号日期">
+          <n-input :value="pickDate" readonly />
+        </n-form-item>
+        <n-form-item label="医生工号">
+          <n-input :value="selectedDoctor?.doctor_no ?? ''" readonly />
+        </n-form-item>
+        <n-form-item label="医生姓名">
+          <n-input :value="selectedDoctor?.name ?? ''" readonly />
+        </n-form-item>
+        <n-form-item label="患者姓名">
+          <n-input :value="patientRow?.real_name ?? currentProfile?.displayName ?? ''" readonly />
+        </n-form-item>
+        <n-form-item label="患者身份证号">
+          <n-input :value="patientRow?.id_card ?? ''" readonly />
+        </n-form-item>
+        <n-form-item label="挂号费用">
+          <n-input :value="`¥${selectedDoctor ? regFee(selectedDoctor) : 0}`" readonly />
+        </n-form-item>
+      </n-form>
+      <template #action>
+        <NButton @click="closeBookForm">
+          取消
+        </NButton>
+        <NButton
+          type="primary"
+          :disabled="!pickedTimeSlot || !!slotOptions.find(o => o.value === pickedTimeSlot && o.disabled) || currentRole !== '患者'"
+          @click="confirmBook"
+        >
+          确定
+        </NButton>
+      </template>
+    </n-modal>
 
     <n-modal
       v-model:show="showSuccessDetail"

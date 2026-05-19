@@ -1,24 +1,25 @@
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import type { MenuOption } from 'naive-ui'
+import { RouterLink } from 'vue-router'
 import { useLoginStore } from '~/store'
 
-const route = useRoute()
+function renderIcon(icon: string) {
+  return () => h('span', { class: icon })
+}
+
 const router = useRouter()
 const { logout, currentProfile, isLogin } = useLoginStore()
 
-/** 与论文用例图一致：首页、预约挂号、我的挂号、报告、住院、个人信息、评价 */
-const pageList = [
-  { name: '首页', path: '/home' },
-  { name: '预约挂号', path: '/home/book' },
-  { name: '我的挂号', path: '/home/my-registers' },
-  { name: '导出报告单', path: '/home/reports' },
-  { name: '住院信息', path: '/home/hospital' },
-  { name: '个人信息', path: '/home/profile' },
-  { name: '评价医生', path: '/home/review' },
+/** 与论文图 5.10–5.13 患者端侧栏一致，并含导出报告单、评价医生 */
+const menuOptions: MenuOption[] = [
+  { label: () => h(RouterLink, { to: '/home' }, '首页'), key: 'home', icon: renderIcon('icon-[icon-park-outline--home-two]') },
+  { label: () => h(RouterLink, { to: '/home/book' }, '预约挂号'), key: 'book', icon: renderIcon('icon-[icon-park-outline--calendar]') },
+  { label: () => h(RouterLink, { to: '/home/my-registers' }, '我的挂号'), key: 'my-reg', icon: renderIcon('icon-[icon-park-outline--order]') },
+  { label: () => h(RouterLink, { to: '/home/hospital' }, '住院信息'), key: 'hospital', icon: renderIcon('icon-[icon-park-outline--hospital-bed]') },
+  { label: () => h(RouterLink, { to: '/home/profile' }, '个人信息'), key: 'profile', icon: renderIcon('icon-[icon-park-outline--user]') },
+  { label: () => h(RouterLink, { to: '/home/reports' }, '导出报告单'), key: 'reports', icon: renderIcon('icon-[icon-park-outline--file-pdf]') },
+  { label: () => h(RouterLink, { to: '/home/review' }, '评价医生'), key: 'review', icon: renderIcon('icon-[icon-park-outline--star]') },
 ]
-
-const activePath = computed(() => route.path)
 
 function handelLogout() {
   logout()
@@ -27,39 +28,40 @@ function handelLogout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <div class="border-b border-slate-200 bg-white shadow-sm">
-      <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-3">
-        <ul class="flex flex-wrap items-center gap-5">
-          <span class="text-lg font-bold text-teal-700">门诊管理系统 · 患者端</span>
-          <li v-for="item of pageList" :key="item.path">
-            <RouterLink
-              class="text-base text-slate-600 transition hover:text-teal-700"
-              :class="{ '!font-semibold !text-teal-700': activePath === item.path }"
-              :to="item.path"
-            >
-              {{ item.name }}
-            </RouterLink>
-          </li>
-        </ul>
+  <n-layout has-sider class="min-h-screen bg-slate-100">
+    <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="200" class="!bg-white">
+      <div class="px-4 py-5 text-lg font-bold text-teal-700">
+        医院管理系统
+      </div>
+      <n-menu
+        :options="menuOptions"
+        :collapsed-width="64"
+        :collapsed-icon-size="22"
+      />
+    </n-layout-sider>
+    <n-layout>
+      <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+        <span class="text-slate-500">患者端</span>
         <div class="flex items-center gap-3">
           <template v-if="isLogin">
-            <n-text depth="2">
-              欢迎您，{{ currentProfile?.displayName }}（{{ currentProfile?.username }}）
-            </n-text>
-            <n-button quaternary type="error" @click="handelLogout">
-              退出登录
-            </n-button>
+            <span class="text-slate-600">欢迎您，{{ currentProfile?.displayName }}</span>
+            <n-popconfirm @positive-click="handelLogout">
+              <template #trigger>
+                <n-button type="error" size="small">
+                  退出登录
+                </n-button>
+              </template>
+              确认退出？
+            </n-popconfirm>
           </template>
-          <n-button v-else type="primary" @click="$router.push('/login')">
+          <n-button v-else type="primary" size="small" @click="router.push('/login')">
             登录
           </n-button>
         </div>
+      </header>
+      <div class="p-6">
+        <RouterView />
       </div>
-    </div>
-
-    <div class="mx-auto max-w-[1200px] min-h-[calc(100vh-80px)] px-4 py-6">
-      <RouterView />
-    </div>
-  </div>
+    </n-layout>
+  </n-layout>
 </template>
