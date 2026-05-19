@@ -122,6 +122,8 @@ export interface Registration {
   diagnosis: string
   /** 医生接诊中 */
   visiting?: boolean
+  /** 完成接诊时间（历史挂号列表展示） */
+  visit_end_time?: string | null
 }
 
 export interface PrescriptionDetail {

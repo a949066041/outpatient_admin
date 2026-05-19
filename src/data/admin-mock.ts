@@ -12,6 +12,7 @@ import type {
   Schedule,
 } from '~/types/outpatient'
 import dayjs from 'dayjs'
+import { buildDoctorRegistrationExtras } from '~/data/doctor-mock'
 
 export const MOCK_DOCTORS: Doctor[] = [
   { doctor_id: 1, doctor_no: '1000', password: '123456', name: '张三', gender: 1, age: 45, department_id: 1, title: '主任医师', phone: '13899999999', email: 'zhangsan@hospital.com', id_card: '210102197801011234', introduction: '从事神经内科临床工作二十余年，擅长脑血管病、帕金森病等。', status: 1, register_fee: 10 },
@@ -154,7 +155,7 @@ export function buildRegistrationSeed(): Registration[] {
     { patient_id: 12, doctor_id: 6, department_id: 15, register_date: dates[6]!, time_slot: '上午', register_fee: 35, status: 0, is_paid: 1, pay_time: now, symptom_desc: '月经不调', diagnosis: '', visiting: false },
     { patient_id: 1, doctor_id: 3, department_id: 9, register_date: dates[1]!, time_slot: '上午', register_fee: 15, status: 0, is_paid: 1, pay_time: now, symptom_desc: '上腹隐痛一周', diagnosis: '', visiting: false },
     { patient_id: 4, doctor_id: 3, department_id: 9, register_date: past[6]!, time_slot: '下午', register_fee: 15, status: 1, is_paid: 1, pay_time: now, symptom_desc: '术后换药', diagnosis: '伤口愈合良好', visiting: false },
-    { patient_id: 1, doctor_id: 1, department_id: 1, register_date: past[4]!, time_slot: '上午', register_fee: 10, status: 1, is_paid: 1, pay_time: now, symptom_desc: '头晕', diagnosis: '椎基底动脉供血不足（轻度）', visiting: false },
+    { patient_id: 1, doctor_id: 1, department_id: 1, register_date: past[4]!, time_slot: '上午', register_fee: 10, status: 1, is_paid: 1, pay_time: now, symptom_desc: '头晕', diagnosis: '椎基底动脉供血不足（轻度）', visit_end_time: `${past[4]} 10:38:00`, visiting: false },
     { patient_id: 1, doctor_id: 2, department_id: 5, register_date: past[5]!, time_slot: '下午', register_fee: 30, status: 1, is_paid: 1, pay_time: now, symptom_desc: '活动后心悸', diagnosis: '窦性心动过速', visiting: false },
     { patient_id: 1, doctor_id: 5, department_id: 24, register_date: past[6]!, time_slot: '下午', register_fee: 25, status: 1, is_paid: 1, pay_time: now, symptom_desc: '胃脘胀满', diagnosis: '脾虚湿困', visiting: false },
     { patient_id: 13, doctor_id: 7, department_id: 17, register_date: dates[0]!, time_slot: '上午', register_fee: 12, status: 0, is_paid: 1, pay_time: now, symptom_desc: '哮喘复诊', diagnosis: '', visiting: false },
@@ -163,17 +164,19 @@ export function buildRegistrationSeed(): Registration[] {
     { patient_id: 3, doctor_id: 10, department_id: 12, register_date: dates[8]!, time_slot: '上午', register_fee: 22, status: 0, is_paid: 1, pay_time: now, symptom_desc: '尿频', diagnosis: '', visiting: false },
     { patient_id: 7, doctor_id: 12, department_id: 19, register_date: dates[9]!, time_slot: '下午', register_fee: 15, status: 0, is_paid: 0, pay_time: null, symptom_desc: '耳鸣', diagnosis: '', visiting: false },
     { patient_id: 11, doctor_id: 14, department_id: 11, register_date: dates[10]!, time_slot: '上午', register_fee: 40, status: 0, is_paid: 1, pay_time: now, symptom_desc: '头痛呕吐', diagnosis: '', visiting: false },
-    { patient_id: 6, doctor_id: 1, department_id: 1, register_date: allDates[3]!, time_slot: '下午', register_fee: 10, status: 1, is_paid: 1, pay_time: now, symptom_desc: '偏头痛', diagnosis: '紧张型头痛', visiting: false },
+    { patient_id: 6, doctor_id: 1, department_id: 1, register_date: allDates[3]!, time_slot: '下午', register_fee: 10, status: 1, is_paid: 1, pay_time: now, symptom_desc: '偏头痛', diagnosis: '紧张型头痛', visit_end_time: `${allDates[3]} 16:20:00`, visiting: false },
     { patient_id: 8, doctor_id: 8, department_id: 20, register_date: allDates[2]!, time_slot: '上午', register_fee: 28, status: 1, is_paid: 1, pay_time: now, symptom_desc: '结膜炎', diagnosis: '过敏性结膜炎', visiting: false },
     { patient_id: 9, doctor_id: 4, department_id: 2, register_date: allDates[1]!, time_slot: '上午', register_fee: 20, status: 1, is_paid: 1, pay_time: now, symptom_desc: '气促', diagnosis: '慢阻肺急性加重', visiting: false },
     { patient_id: 10, doctor_id: 11, department_id: 3, register_date: allDates[4]!, time_slot: '下午', register_fee: 32, status: 1, is_paid: 1, pay_time: now, symptom_desc: '甲状腺复查', diagnosis: '甲功正常，继续观察', visiting: false },
     { patient_id: 12, doctor_id: 6, department_id: 15, register_date: allDates[5]!, time_slot: '下午', register_fee: 35, status: 1, is_paid: 1, pay_time: now, symptom_desc: '备孕咨询', diagnosis: '孕前检查已完成', visiting: false },
   ]
 
-  return templates.map((t, i) => ({
+  const extras = buildDoctorRegistrationExtras()
+  const all = [...templates, ...extras]
+  return all.map((t, i) => ({
     ...t,
     register_id: i + 1,
-    register_no: `GH${today.format('YYYYMMDD')}${String(i + 1).padStart(3, '0')}`,
+    register_no: `GH${today.format('YYYYMMDD')}${String(i + 1).padStart(4, '0')}`,
   }))
 }
 

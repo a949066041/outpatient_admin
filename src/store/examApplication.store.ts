@@ -1,6 +1,7 @@
 import type { ExamApplication } from '~/types/outpatient'
 import { createGlobalState, useLocalStorage } from '@vueuse/core'
 import dayjs from 'dayjs'
+import { buildDoctorExamSeed } from '~/data/doctor-mock'
 import { genNo, nextNumericId } from '~/utils/outpatient'
 
 function examApplicationSeed(): ExamApplication[] {
@@ -17,11 +18,12 @@ function examApplicationSeed(): ExamApplication[] {
     { application_id: 6, application_no: 'JC20260520006', register_id: 7, doctor_id: 2, patient_id: 1, item_id: 3, status: 0, is_paid: 1, check_result: '', check_time: null, report_time: null, purpose: '心律评估' },
     { application_id: 7, application_no: 'JC20260520007', register_id: 8, doctor_id: 3, patient_id: 1, item_id: 1, status: 1, is_paid: 1, check_result: '血小板、肝肾功能未见异常', check_time: done2, report_time: rep2, purpose: '术后复查' },
     { application_id: 8, application_no: 'JC20260515001', register_id: 1, doctor_id: 1, patient_id: 1, item_id: 3, status: 2, is_paid: 0, check_result: '', check_time: null, report_time: null, purpose: '患者改约，申请作废' },
+    ...buildDoctorExamSeed(),
   ]
 }
 
 export const useExamApplicationStore = createGlobalState(() => {
-  const list = useLocalStorage<ExamApplication[]>('outpatient-exam-application-list-v', examApplicationSeed())
+  const list = useLocalStorage<ExamApplication[]>('outpatient-exam-application-list-v2', examApplicationSeed())
 
   function createApplication(input: {
     register_id: number

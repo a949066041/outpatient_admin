@@ -1,28 +1,47 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
+import type { Registration } from '~/types/outpatient'
+import { NButton, NTag } from 'naive-ui'
+import { h } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginStore, usePatientStore, useRegistrationStore } from '~/store'
+import { useDoctorContext } from '~/composables/useDoctorContext'
+import { useRegistrationStore } from '~/store'
 
 const router = useRouter()
-const { list, updateRegistration } = useRegistrationStore()
-const { dataList: patients } = usePatientStore()
-const { currentProfile } = useLoginStore()
-const today = dayjs().format('YYYY-MM-DD')
+const { updateRegistration } = useRegistrationStore()
+const {
+  registrations,
+  doctorId,
+  today,
+  patientName,
+  patientAccount,
+  regTimeLabel,
+} = useDoctorContext()
 
-const rows = computed(() =>
-  list.value.filter(
-    r =>
-      r.doctor_id === currentProfile.value?.id
-      && r.register_date === today
-      && r.status === 0,
-  ),
-)
+const keyword = ref('')
 
-function pname(id: number) {
-  return patients.value.find(p => p.patient_id === id)?.real_name ?? String(id)
-}
+const rows = computed(() => {
+  const q = keyword.value.trim()
+  return registrations.value
+    .filter(
+      r =>
+        r.doctor_id === doctorId.value
+        && r.register_date === today
+        && r.status === 0,
+    )
+    .filter((r) => {
+      if (!q)
+        return true
+      return (
+        r.register_no.includes(q)
+        || String(r.patient_id).includes(q)
+        || patientName(r.patient_id).includes(q)
+        || patientAccount(r.patient_id).includes(q)
+      )
+    })
+    .sort((a, b) => a.register_id - b.register_id)
+})
 
-function receive(r: import('~/types/outpatient').Registration) {
+function receive(r: Registration) {
   updateRegistration(r.register_id, { visiting: true })
   router.push({ path: '/doctor/consult', query: { id: String(r.register_id) } })
 }
@@ -30,28 +49,47 @@ function receive(r: import('~/types/outpatient').Registration) {
 
 <template>
   <div>
-    <h3 class="mb-4 text-lg font-medium">
-      当日待诊患者队列
+    <h3 class="mb-1 text-lg font-medium text-slate-800">
+      今日挂号列表
     </h3>
+
+    <n-input
+      v-model:value="keyword"
+      class="mb-4 max-w-sm"
+      clearable
+      placeholder="请输入患者姓名 / 账号 / 挂号单号查询"
+    >
+      <template #prefix>
+        <span class="icon-[icon-park-outline--search]" />
+      </template>
+    </n-input>
+
     <n-empty v-if="!rows.length" description="暂无待就诊挂号" />
-    <n-list v-else bordered>
-      <n-list-item v-for="r in rows" :key="r.register_id">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <n-tag type="info">
-              {{ r.register_no }}
-            </n-tag>
-            <span class="ml-2 font-medium">{{ pname(r.patient_id) }}</span>
-            <span class="ml-2 text-slate-500">{{ r.time_slot }}</span>
-            <n-tag class="ml-2" :type="r.is_paid ? 'success' : 'warning'" size="small">
-              {{ r.is_paid ? '已缴费' : '未缴费' }}
-            </n-tag>
-          </div>
-          <n-button type="primary" @click="receive(r)">
-            接诊
-          </n-button>
-        </div>
-      </n-list-item>
-    </n-list>
+    <n-data-table
+      v-else
+      :columns="[
+        { title: '挂号单号', key: 'register_no', width: 140 },
+        { title: '患者账号', key: 'acc', width: 110, render: (row: Registration) => patientAccount(row.patient_id) },
+        { title: '患者姓名', key: 'name', width: 100, render: (row: Registration) => patientName(row.patient_id) },
+        { title: '挂号时间', key: 'time', width: 180, render: (row: Registration) => regTimeLabel(row) },
+        { title: '主诉', key: 'symptom_desc', ellipsis: { tooltip: true } },
+        {
+          title: '缴费',
+          key: 'is_paid',
+          width: 88,
+          render: (row: Registration) =>
+            h(NTag, { size: 'small', type: row.is_paid ? 'success' : 'warning' }, { default: () => (row.is_paid ? '已缴' : '未缴') }),
+        },
+        {
+          title: '操作',
+          key: 'op',
+          width: 100,
+          render: (row: Registration) =>
+            h(NButton, { size: 'small', type: 'primary', onClick: () => receive(row) }, { default: () => '接诊' }),
+        },
+      ]"
+      :data="rows"
+      :pagination="{ pageSize: 8 }"
+    />
   </div>
 </template>
